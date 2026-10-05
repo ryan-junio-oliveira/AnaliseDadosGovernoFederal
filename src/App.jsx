@@ -13,16 +13,6 @@ const Poderes = lazy(() => import("./sections/Poderes.jsx"));
 const Metodologia = lazy(() => import("./sections/Metodologia.jsx"));
 const Privacidade = lazy(() => import("./sections/Privacidade.jsx"));
 
-const NAV = [
-  ["#panorama", "Panorama", "fa-chart-line"],
-  ["#receitas", "Receitas", "fa-sack-dollar"],
-  ["#despesas", "Despesas", "fa-money-bill-transfer"],
-  ["#orgaos", "Órgãos", "fa-building-columns"],
-  ["#poderes", "Poderes", "fa-gavel"],
-  ["#metodologia", "Metodologia", "fa-file-lines"],
-  ["#privacidade", "Privacidade", "fa-shield-halved"],
-];
-
 const toggleIn = (arr, v, min = 1) =>
   arr.includes(v) ? (arr.length > min ? arr.filter((x) => x !== v) : arr) : [...arr, v];
 
@@ -71,21 +61,31 @@ function Delta({ valor, bomQuandoSobe, rotulo }) {
 
 function YearFilter({ anos, anosBtns, setAnos }) {
   const todos = anos.length === anosBtns.length;
+  const faixa = useRef(null);
+  const rola = (dx) => faixa.current?.scrollBy({ left: dx, behavior: "smooth" });
   return (
-    <div className="yearscroll" role="group" aria-label="Filtrar por ano">
-      <button className={`segbtn${todos ? " on" : ""}`} aria-pressed={todos} onClick={() => setAnos(anosBtns)}>
-        Todos
+    <div className="flex items-center gap-1.5">
+      <button type="button" className="segbtn !px-2.5 flex-none" aria-label="Ver anos anteriores" onClick={() => rola(-240)}>
+        ‹
       </button>
-      {anosBtns.map((y) => (
-        <button
-          key={y}
-          className={`segbtn${anos.includes(y) ? " on" : ""}`}
-          aria-pressed={anos.includes(y)}
-          onClick={() => setAnos((a) => toggleIn(a, y))}
-        >
-          {y}
+      <div ref={faixa} className="yearscroll" role="group" aria-label="Filtrar por ano">
+        <button className={`segbtn${todos ? " on" : ""}`} aria-pressed={todos} onClick={() => setAnos(anosBtns)}>
+          Todos
         </button>
-      ))}
+        {anosBtns.map((y) => (
+          <button
+            key={y}
+            className={`segbtn${anos.includes(y) ? " on" : ""}`}
+            aria-pressed={anos.includes(y)}
+            onClick={() => setAnos((a) => toggleIn(a, y))}
+          >
+            {y}
+          </button>
+        ))}
+      </div>
+      <button type="button" className="segbtn !px-2.5 flex-none" aria-label="Ver anos seguintes" onClick={() => rola(240)}>
+        ›
+      </button>
     </div>
   );
 }
@@ -195,24 +195,14 @@ export default function App() {
     <>
       {/* ============ barra superior ============ */}
       <header ref={headRef} className="fixed top-0 inset-x-0 z-40 backdrop-blur-md" style={{ background: "var(--nav)", borderBottom: "1px solid var(--border)" }}>
-        <div className="max-w-6xl mx-auto px-4 pt-2 flex items-center gap-2.5">
+        <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center gap-3">
           <BrandMark size={30} />
           <div className="leading-tight min-w-0">
             <p className="font-display font-bold truncate">Observatório dos Dados</p>
             <p className="text-[10px] tx-faint hidden min-[420px]:block">União {intervalo?.anos || ""}</p>
           </div>
-          <nav className="hidden xl:flex gap-4 text-[13px] tx-mut ml-4" aria-label="Seções">
-            {NAV.map(([href, label]) => (
-              <a key={href} href={href} className="hover:opacity-70 transition">{label}</a>
-            ))}
-          </nav>
           <span className="ml-auto flex-none">{themeBtn}</span>
         </div>
-        <nav className="max-w-6xl mx-auto px-4 mobilenav !py-1.5 xl:hidden" aria-label="Seções">
-          {NAV.map(([href, label]) => (
-            <a key={href} href={href}>{label}</a>
-          ))}
-        </nav>
       </header>
 
       <div>

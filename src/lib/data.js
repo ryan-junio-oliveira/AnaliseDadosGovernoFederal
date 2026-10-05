@@ -147,7 +147,7 @@ export function agregarOrgaos(todos, anos, poderes) {
     const k = String(r.cod_orgao);
     let o = por.get(k);
     if (!o) {
-      o = { nome: r.orgao, anoNome: 0, poder: r.poder, valor: 0, empenhado: 0 };
+      o = { cod: k, nome: r.orgao, anoNome: 0, poder: r.poder, valor: 0, empenhado: 0 };
       por.set(k, o);
     }
     if (r.ano >= o.anoNome) {

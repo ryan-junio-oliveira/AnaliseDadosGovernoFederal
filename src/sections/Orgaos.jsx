@@ -76,7 +76,7 @@ export default function Orgaos({ todos, anos, poderes, setPoderes }) {
         <div className="flex flex-col gap-4">
           {OT.length === 0 && <p className="text-sm tx-faint">Nenhum órgão no filtro.</p>}
           {OT.map((it, i) => (
-            <div key={it.nome}>
+            <div key={it.cod ?? `${it.nome}-${i}`}>
               <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
                 <span className="rank-pos">{i + 1}</span>
                 <span className="text-sm flex-1 min-w-[140px] leading-snug" style={{ color: "var(--text)" }}>{it.nome}</span>
