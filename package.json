@@ -1,12 +1,16 @@
 {
-  "name": "painel-fiscal-uniao",
+  "name": "observatorio-dos-dados",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
+  "engines": { "node": ">=18" },
   "scripts": {
     "dev": "vite --port 8000 --host",
     "build": "vite build",
-    "preview": "vite preview --port 8000"
+    "preview": "vite preview --port 8000",
+    "atualizar": "python scripts/atualizar.py",
+    "exportar": "python scripts/export_json.py",
+    "validar-dados": "python scripts/validar.py"
   },
   "dependencies": {
     "chart.js": "^4.4.7",

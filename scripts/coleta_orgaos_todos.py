@@ -124,11 +124,24 @@ def parse_ano(ano):
 
 if __name__ == "__main__":
     import pandas as pd
-    anos = [int(a) for a in sys.argv[1:]] or [2022, 2023, 2024, 2025, 2026]
+    import traceback
+    from janela import ANOS
+    anos = [int(a) for a in sys.argv[1:]] or ANOS
     todas = []
+    falharam = []
     for ano in anos:
-        todas.extend(parse_ano(ano))
+        try:
+            todas.extend(parse_ano(ano))
+        except Exception as e:
+            falharam.append(ano)
+            print(f"[{ano}] FALHOU e foi pulado: {e}", flush=True)
+            traceback.print_exc()
+    if not todas:
+        print("ERRO: nenhum ano coletado.", flush=True)
+        raise SystemExit(1)
     df = pd.DataFrame(todas)
     df.to_csv(DATA / "orgaos_todos.csv", index=False)
     print("OK:", len(df), "linhas -> data/orgaos_todos.csv")
+    if falharam:
+        print("Anos pulados (tentar de novo depois):", falharam)
     print(df.groupby("poder")["pago"].sum().sort_values(ascending=False) / 1e9)

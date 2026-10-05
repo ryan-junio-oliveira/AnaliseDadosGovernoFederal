@@ -1,36 +1,136 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import Metodologia from "./sections/Metodologia.jsx";
-import Orgaos from "./sections/Orgaos.jsx";
-import Panorama from "./sections/Panorama.jsx";
-import Poderes from "./sections/Poderes.jsx";
-import ReceitasDespesas from "./sections/ReceitasDespesas.jsx";
-import { Spark } from "./components/ui.jsx";
-import { PODERES, YEARS, agregar, brl, resumoMensal, useData } from "./lib/data.js";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+import EnteSelector from "./components/EnteSelector.jsx";
+import { AdSlot, ConsentBanner } from "./components/Ads.jsx";
+import { BrandMark, ErrorBoundary, Skeleton, Spark } from "./components/ui.jsx";
+import { PODERES, YEARS, agregar, anosComDados, brl, comparativo, intervaloDados, resumoMensal, useData, varPct } from "./lib/data.js";
+import { getEnte } from "./lib/entes.js";
 import { useTheme } from "./lib/theme.jsx";
+
+const Panorama = lazy(() => import("./sections/Panorama.jsx"));
+const ReceitasDespesas = lazy(() => import("./sections/ReceitasDespesas.jsx"));
+const Orgaos = lazy(() => import("./sections/Orgaos.jsx"));
+const Poderes = lazy(() => import("./sections/Poderes.jsx"));
+const Metodologia = lazy(() => import("./sections/Metodologia.jsx"));
+const Privacidade = lazy(() => import("./sections/Privacidade.jsx"));
+
+const NAV = [
+  ["#panorama", "Panorama", "fa-chart-line"],
+  ["#receitas", "Receitas", "fa-sack-dollar"],
+  ["#despesas", "Despesas", "fa-money-bill-transfer"],
+  ["#orgaos", "Órgãos", "fa-building-columns"],
+  ["#poderes", "Poderes", "fa-gavel"],
+  ["#metodologia", "Metodologia", "fa-file-lines"],
+  ["#privacidade", "Privacidade", "fa-shield-halved"],
+];
 
 const toggleIn = (arr, v, min = 1) =>
   arr.includes(v) ? (arr.length > min ? arr.filter((x) => x !== v) : arr) : [...arr, v];
 
+function copiar(texto) {
+  try {
+    if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(texto);
+  } catch { /* fallback abaixo */ }
+  const ta = document.createElement("textarea");
+  ta.value = texto;
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand("copy"); } catch { /* sem clipboard */ }
+  ta.remove();
+  return Promise.resolve();
+}
+
+function exportCSV(rows, anos) {
+  const head = "mes;receita;despesa;resultado_primario\n";
+  const body = rows
+    .map((r) => [r.mes, Math.round(r.receita), Math.round(r.despesa), Math.round(r.resultado_primario)].join(";"))
+    .join("\n");
+  const blob = new Blob(["\uFEFF" + head + body], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `observatorio-fiscal-${[...anos].sort().join("-")}.csv`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+function fmtPct(v) {
+  if (v == null || !Number.isFinite(v)) return null;
+  const s = v >= 0 ? "▲" : "▼";
+  return `${s} ${Math.abs(v).toFixed(1).replace(".", ",")}%`;
+}
+
+function Delta({ valor, bomQuandoSobe, rotulo }) {
+  const txt = fmtPct(valor);
+  if (txt == null) return <div className="h-[18px] mt-1" />;
+  const bom = valor >= 0 ? bomQuandoSobe : !bomQuandoSobe;
+  return (
+    <p className="delta mt-1" style={{ color: bom ? "var(--green)" : "var(--brick)" }}>
+      {txt} <small>vs {rotulo}</small>
+    </p>
+  );
+}
+
+function YearFilter({ anos, anosBtns, setAnos }) {
+  const todos = anos.length === anosBtns.length;
+  return (
+    <div className="yearscroll" role="group" aria-label="Filtrar por ano">
+      <button className={`segbtn${todos ? " on" : ""}`} aria-pressed={todos} onClick={() => setAnos(anosBtns)}>
+        Todos
+      </button>
+      {anosBtns.map((y) => (
+        <button
+          key={y}
+          className={`segbtn${anos.includes(y) ? " on" : ""}`}
+          aria-pressed={anos.includes(y)}
+          onClick={() => setAnos((a) => toggleIn(a, y))}
+        >
+          {y}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function App() {
   const { theme, toggle } = useTheme();
-  const { loading, error, data } = useData();
+  const [enteId, setEnteId] = useState(() => {
+    try { return localStorage.getItem("pfu-ente") || "uniao"; } catch { return "uniao"; }
+  });
+  const ente = getEnte(enteId);
+  useEffect(() => {
+    try { localStorage.setItem("pfu-ente", ente.id); } catch { /* sem storage */ }
+  }, [ente.id]);
+
+  const { loading, error, data } = useData(ente);
   const [anos, setAnos] = useState(YEARS);
   const [modo, setModo] = useState("mensal");
   const [poderes, setPoderes] = useState(PODERES);
   const [insightIdx, setInsightIdx] = useState(0);
+  const [copiado, setCopiado] = useState(false);
   const headRef = useRef(null);
-  const [headH, setHeadH] = useState(72);
+  const [headH, setHeadH] = useState(64);
 
   useEffect(() => {
-    const update = () => setHeadH(headRef.current?.offsetHeight || 72);
+    const update = () => setHeadH(headRef.current?.offsetHeight || 64);
     update();
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
   }, []);
 
   const anosSet = useMemo(() => new Set(anos), [anos]);
+  const anosBtns = useMemo(() => (data ? anosComDados(data.mensal) : YEARS), [data]);
+  // Sincroniza o filtro com os anos que existem nos dados (ex.: apos
+  // regenerar a decada, ou ao trocar de ente). Evita "Todos" apagado
+  // com todos os anos visiveis selecionados.
+  useEffect(() => {
+    if (data) setAnos(anosComDados(data.mensal));
+  }, [data]);
+  const intervalo = useMemo(() => (data ? intervaloDados(data.mensal) : null), [data]);
   const resumo = useMemo(
     () => (data ? resumoMensal(data.mensal, anosSet) : null),
+    [data, anosSet]
+  );
+  const comp = useMemo(
+    () => (data ? comparativo(data.mensal, anosSet) : null),
     [data, anosSet]
   );
   const { R, D, insights } = useMemo(() => {
@@ -39,257 +139,226 @@ export default function App() {
     const D = agregar(data.despesas, "funcao", anosSet);
     const { rec, des, res, med } = resumo;
     const ys = [...anosSet].sort();
+    const periodo = `${ys[0]}–${ys[ys.length - 1]}`;
+    const pctRes = rec ? ((res / rec) * 100).toFixed(1) : "0.0";
+    if (!R.length || !D.length || !resumo.rows.length) {
+      return {
+        R, D,
+        insights: [
+          { html: <>Sem dados para os anos selecionados. Ajuste o filtro.</>, txt: "Sem dados para os anos selecionados." },
+        ],
+      };
+    }
     return {
       R,
       D,
       insights: [
-        `De ${ys[0]} a ${ys[ys.length - 1]}, a União gastou <b>${brl(des)}</b> e arrecadou <b>${brl(rec)}</b>.`,
-        `O maior destino do gasto é <b>${D[0]?.nome}</b>, com ${D[0]?.pct}% do total aplicado.`,
-        `A principal fonte de receita é <b>${R[0]?.nome}</b>, com ${R[0]?.pct}% da arrecadação.`,
-        `Resultado primário do período: <b>${brl(res)}</b> (${((res / rec) * 100).toFixed(1)}% da receita).`,
-        `Gasto médio mensal da União: <b>${brl(med)}</b>.`,
+        { html: (<>De {periodo}, a União gastou <b>{brl(des)}</b> e arrecadou <b>{brl(rec)}</b>.</>), txt: `De ${periodo}, a União gastou ${brl(des)} e arrecadou ${brl(rec)}.` },
+        { html: (<>O maior destino do gasto é <b>{D[0]?.nome}</b>, com {D[0]?.pct}% do total aplicado.</>), txt: `O maior destino do gasto é ${D[0]?.nome}, com ${D[0]?.pct}% do total aplicado.` },
+        { html: (<>A principal fonte de receita é <b>{R[0]?.nome}</b>, com {R[0]?.pct}% da arrecadação.</>), txt: `A principal fonte de receita é ${R[0]?.nome}, com ${R[0]?.pct}% da arrecadação.` },
+        { html: (<>Resultado primário do período: <b>{brl(res)}</b> ({pctRes}% da receita).</>), txt: `Resultado primário do período: ${brl(res)} (${pctRes}% da receita).` },
+        { html: (<>Gasto médio mensal da União: <b>{brl(med)}</b>.</>), txt: `Gasto médio mensal da União: ${brl(med)}.` },
       ],
     };
   }, [data, resumo, anosSet]);
 
   const maxMes = useMemo(() => {
     if (!data?.mensal?.length) return "—";
-    const m = data.mensal.map((r) => r.mes).sort().pop();
+    const m = data.mensal.reduce((a, b) => (a.mes > b.mes ? a : b)).mes;
     return `${m.slice(5, 7)}/${m.slice(0, 4)}`;
   }, [data]);
 
   const pos = (resumo?.res ?? 0) >= 0;
-  const resColor = pos ? "#34D399" : "#FDA4AF";
+  const resColor = pos ? "#10B981" : "#F59E0B";
+  const insight = insights.length ? insights[insightIdx % insights.length] : null;
+
+  const dRec = resumo && comp ? varPct(resumo.rec, comp.rec) : null;
+  const dDes = resumo && comp ? varPct(resumo.des, comp.des) : null;
+  const dMed = resumo && comp ? varPct(resumo.med, comp.med) : null;
+  const dRes = resumo && comp ? resumo.res - comp.res : null;
+  const rotuloVs = comp?.rotulo || "";
+
+  const themeBtn = (
+    <button
+      type="button"
+      onClick={toggle}
+      className="segbtn"
+      title={theme === "dark" ? "Mudar para modo claro" : "Mudar para modo escuro"}
+      aria-label={theme === "dark" ? "Mudar para modo claro" : "Mudar para modo escuro"}
+      aria-pressed={theme === "light"}
+    >
+      <i className={`fa-solid ${theme === "dark" ? "fa-sun" : "fa-moon"}`} aria-hidden="true"></i>
+    </button>
+  );
 
   return (
     <>
-      {/* barra utilitária */}
-      <div style={{ borderBottom: "1px solid var(--border)" }}>
-        <div className="max-w-6xl mx-auto px-4 py-1.5 flex items-center gap-2 text-[11px] tx-mut flex-wrap">
-          <i className="fa-solid fa-building-columns text-emerald-500"></i>
-          <span>
-            Fonte oficial: Tesouro Nacional — RTN · atualizado até <b style={{ color: "var(--text)" }}>{maxMes}</b>
-          </span>
-          <span className="ml-1 inline-flex items-center gap-1.5 text-[11px] px-2.5 py-0.5 rounded-full" style={{ border: "1px solid var(--border)" }}>
-            <i className="fa-solid fa-folder-open text-sky-400"></i>
-            <span>dados estáticos locais</span>
-          </span>
-          <a href="#metodologia" className="ml-auto hover:opacity-80 transition">
-            <i className="fa-solid fa-circle-info mr-1"></i>Metodologia
-          </a>
-          <button onClick={toggle} className="hover:opacity-80 transition" title="Alternar modo claro/escuro">
-            <i className={`fa-solid ${theme === "dark" ? "fa-sun" : "fa-moon"} mr-1`}></i>
-            {theme === "dark" ? "Modo claro" : "Modo escuro"}
-          </button>
-        </div>
-      </div>
-
-      {/* navegação fixa */}
+      {/* ============ barra superior ============ */}
       <header ref={headRef} className="fixed top-0 inset-x-0 z-40 backdrop-blur-md" style={{ background: "var(--nav)", borderBottom: "1px solid var(--border)" }}>
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3 flex-wrap">
-          <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl" style={{ background: "linear-gradient(135deg,#10B981,#0E7490)" }}>
-            <i className="fa-solid fa-landmark text-lg" style={{ color: "#04120C" }}></i>
-          </span>
-          <div className="leading-tight">
-            <p className="font-display font-bold">Painel Fiscal da União</p>
-            <p className="text-[11px] tx-mut">Governo Central · 2022–2026</p>
+        <div className="max-w-6xl mx-auto px-4 pt-2 flex items-center gap-2.5">
+          <BrandMark size={30} />
+          <div className="leading-tight min-w-0">
+            <p className="font-display font-bold truncate">Observatório dos Dados</p>
+            <p className="text-[10px] tx-faint hidden min-[420px]:block">União {intervalo?.anos || ""}</p>
           </div>
-          <nav className="hidden lg:flex gap-5 text-sm tx-mut ml-6">
-            <a href="#panorama" className="hover:opacity-70 transition">Panorama</a>
-            <a href="#receitas" className="hover:opacity-70 transition">Receitas</a>
-            <a href="#despesas" className="hover:opacity-70 transition">Despesas</a>
-            <a href="#orgaos" className="hover:opacity-70 transition">Órgãos</a>
-            <a href="#poderes" className="hover:opacity-70 transition">Poderes</a>
-          </nav>
-          <div className="ml-auto flex gap-1.5 flex-wrap" role="group" aria-label="Filtrar por ano">
-            <button className={`segbtn${anos.length === YEARS.length ? " on" : ""}`} onClick={() => setAnos(YEARS)}>
-              Todos
-            </button>
-            {YEARS.map((y) => (
-              <button key={y} className={`segbtn${anos.includes(y) ? " on" : ""}`} onClick={() => setAnos((a) => toggleIn(a, y))}>
-                {y}
-              </button>
+          <nav className="hidden xl:flex gap-4 text-[13px] tx-mut ml-4" aria-label="Seções">
+            {NAV.map(([href, label]) => (
+              <a key={href} href={href} className="hover:opacity-70 transition">{label}</a>
             ))}
-          </div>
+          </nav>
+          <span className="ml-auto flex-none">{themeBtn}</span>
         </div>
+        <div className="max-w-6xl mx-auto px-4 pt-1.5 flex items-center gap-2">
+          <div className="flex-none"><EnteSelector value={ente.id} onChange={setEnteId} /></div>
+          <div className="flex-1 min-w-0"><YearFilter anos={anos} anosBtns={anosBtns} setAnos={setAnos} /></div>
+        </div>
+        <nav className="max-w-6xl mx-auto px-4 mobilenav !py-1.5 xl:hidden" aria-label="Seções">
+          {NAV.map(([href, label]) => (
+            <a key={href} href={href}>{label}</a>
+          ))}
+        </nav>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4" style={{ paddingTop: headH + 24, paddingBottom: 72 }}>
-        {loading && (
-          <div className="panel p-10 mt-10 text-center tx-mut">
-            <i className="fa-solid fa-circle-notch fa-spin mr-2"></i>Carregando dados…
-          </div>
-        )}
-        {error && (
-          <div className="panel p-10 mt-10 text-center">
-            <i className="fa-solid fa-triangle-exclamation mr-2" style={{ color: "#FDA4AF" }}></i>
-            Falha ao carregar os dados: {error}
-          </div>
-        )}
+      <div>
+        <main id="conteudo" className="max-w-6xl mx-auto px-4" style={{ paddingTop: headH + 8, paddingBottom: 40 }}>
+          {loading && <Skeleton lines={4} />}
+          {error && !loading && (
+            <div className="panel p-10 mt-6 text-center" role="alert">
+              <i className="fa-solid fa-triangle-exclamation mr-2" style={{ color: "var(--brick)" }} aria-hidden="true"></i>
+              Falha ao carregar os dados: {error}
+              <div className="mt-3">
+                <button className="btn-ghost !py-2 !px-4 text-sm" onClick={() => window.location.reload()}>
+                  <i className="fa-solid fa-rotate-right"></i>Recarregar
+                </button>
+              </div>
+            </div>
+          )}
 
-        {data && resumo && (
-          <>
-            {/* hero */}
-            <section className="grid lg:grid-cols-[1.15fr_.85fr] gap-5 pt-10 items-stretch">
-              <div>
-                <span className="chip">
-                  <i className="fa-solid fa-circle-check"></i>Dados oficiais · valores correntes · conceito acima da linha
-                </span>
-                <h1 className="font-display font-extrabold text-4xl sm:text-[3.4rem] leading-[1.05] mt-4">
-                  Para onde vai
-                  <br />
-                  o dinheiro da{" "}
-                  <span className="text-transparent bg-clip-text" style={{ backgroundImage: "linear-gradient(100deg,#34D399,#38BDF8)" }}>
-                    União?
+          {data && resumo && (
+            <>
+              {/* cabeçalho da página */}
+              <section className="pt-6 lg:pt-8" aria-label="Resumo fiscal">
+                <p className="dateline">Visão geral · {intervalo?.periodo || ""}</p>
+                <div className="flex items-end justify-between gap-3 flex-wrap mt-1.5">
+                  <h1 className="font-display font-bold text-[1.75rem] sm:text-[2.1rem] leading-none">
+                    Resultado fiscal da União
+                  </h1>
+                  <div className="flex gap-2">
+                    <button type="button" className="btn-ghost !py-2 !px-3.5 text-sm" onClick={() => exportCSV(resumo.rows, anos)}>
+                      <i className="fa-solid fa-download" aria-hidden="true"></i>CSV
+                    </button>
+                  </div>
+                </div>
+                <p className="tx-faint text-[13px] mt-2">
+                  Receita líquida × despesa primária · valores correntes · RTN Tabela 1.1 + SIOP
+                </p>
+              </section>
+
+              {/* kpis */}
+              <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5 mt-5" aria-label="Indicadores">
+                <div className="panel p-5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="kpi-ic c-rec"><i className="fa-solid fa-sack-dollar" aria-hidden="true"></i></span>
+                    <p className="text-[11px] font-semibold tx-mut uppercase tracking-widest">Arrecadado</p>
+                  </div>
+                  <p className="font-display font-bold text-[1.6rem] mt-2 c-rec">{brl(resumo.rec)}</p>
+                  <Delta valor={dRec} bomQuandoSobe rotulo={rotuloVs} />
+                  <p className="text-xs tx-faint mt-0.5">receita líquida no período</p>
+                  <div className="mt-2"><Spark id="krec" values={resumo.rows.map((r) => r.receita)} color="#10B981" /></div>
+                </div>
+                <div className="panel p-5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="kpi-ic c-des"><i className="fa-solid fa-money-bill-transfer" aria-hidden="true"></i></span>
+                    <p className="text-[11px] font-semibold tx-mut uppercase tracking-widest">Executado</p>
+                  </div>
+                  <p className="font-display font-bold text-[1.6rem] mt-2 c-des">{brl(resumo.des)}</p>
+                  <Delta valor={dDes} bomQuandoSobe={false} rotulo={rotuloVs} />
+                  <p className="text-xs tx-faint mt-0.5">despesa primária total</p>
+                  <div className="mt-2"><Spark id="kdes" values={resumo.rows.map((r) => r.despesa)} color="#F43F5E" /></div>
+                </div>
+                <div className="panel p-5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="kpi-ic c-warn"><i className="fa-solid fa-scale-balanced" aria-hidden="true"></i></span>
+                    <p className="text-[11px] font-semibold tx-mut uppercase tracking-widest">Resultado primário</p>
+                  </div>
+                  <p className="font-display font-bold text-[1.6rem] mt-2" style={{ color: resColor }}>
+                    {(pos ? "+" : "-") + brl(Math.abs(resumo.res)).slice(3)}
+                  </p>
+                  <p className="delta mt-1" style={{ color: dRes == null ? undefined : dRes >= 0 ? "var(--green)" : "var(--brick)" }}>
+                    {dRes == null ? <span className="tx-faint font-medium">sem base anterior</span> : (<>{dRes >= 0 ? "▲" : "▼"} {brl(Math.abs(dRes))} <small>vs {rotuloVs}</small></>)}
+                  </p>
+                  <p className="text-xs tx-faint mt-0.5">
+                    {pos ? "Superavit" : "Deficit"} ({((resumo.res / Math.max(1, resumo.rec)) * 100).toFixed(1)}% da receita)
+                  </p>
+                  <div className="mt-2">
+                    <Spark id="kres" values={resumo.rows.map((r) => r.resultado_primario)} color={pos ? "#10B981" : "#F59E0B"} fill={false} />
+                  </div>
+                </div>
+                <div className="panel p-5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="kpi-ic c-blue"><i className="fa-solid fa-gauge-high" aria-hidden="true"></i></span>
+                    <p className="text-[11px] font-semibold tx-mut uppercase tracking-widest">Gasto médio mensal</p>
+                  </div>
+                  <p className="font-display font-bold text-[1.6rem] mt-2 c-blue">{brl(resumo.med)}</p>
+                  <Delta valor={dMed} bomQuandoSobe={false} rotulo={rotuloVs} />
+                  <p className="text-xs tx-faint mt-0.5">média do período filtrado</p>
+                  <div className="mt-2"><Spark id="kmed" values={resumo.rows.map((r) => r.despesa)} color="#0E7CB5" /></div>
+                </div>
+              </section>
+
+              {/* destaque */}
+              {insight && (
+                <section className="panel p-4 sm:p-5 mt-3.5 flex items-center gap-3.5 flex-wrap" aria-live="polite" aria-label="Destaque">
+                  <span className="rank-pos !w-8 !h-8" aria-hidden="true">
+                    <i className="fa-solid fa-lightbulb text-[13px]"></i>
                   </span>
-                </h1>
-                <p className="tx-mut text-lg mt-4 max-w-xl leading-relaxed">
-                  Quanto o Governo Federal <b style={{ color: "var(--text)" }}>arrecada</b>, quanto{" "}
-                  <b style={{ color: "var(--text)" }}>gasta</b> e <b style={{ color: "var(--text)" }}>quais grupos concentram a despesa</b> — mês a mês, de
-                  2022 a 2026, com filtros por ano.
-                </p>
-                <div className="flex gap-3 mt-6 flex-wrap">
-                  <a href="#panorama" className="btn-primary">
-                    <i className="fa-solid fa-chart-line"></i>Explorar os dados
-                  </a>
-                  <a href="#metodologia" className="btn-ghost">
-                    <i className="fa-solid fa-book-open"></i>Como os dados são gerados
-                  </a>
-                </div>
-                <div className="flex gap-2 mt-6 flex-wrap">
-                  <span className="chip"><i className="fa-solid fa-calendar-days"></i>Jan/2022 – Jul/2026</span>
-                  <span className="chip"><i className="fa-solid fa-database"></i>RTN · Tabela 1.1 + SIOP</span>
-                  <span className="chip"><i className="fa-solid fa-scale-balanced"></i>Receita líquida × despesa primária</span>
-                </div>
-              </div>
-              <div className="panel p-6 flex flex-col justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="icon-chip"><i className="fa-solid fa-scale-balanced"></i></span>
-                  <div>
-                    <p className="eyebrow">Resultado primário no período</p>
-                    <p className="text-xs tx-mut">
-                      {pos ? "Superavit" : "Deficit"} primário em {[...anos].sort().join(" · ")}
-                    </p>
+                  <p className="text-[0.95rem] flex-1 min-w-[220px] leading-relaxed">{insight.html}</p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className="btn-ghost !py-2 !px-3.5 text-sm"
+                      onClick={() => setInsightIdx((i) => (i + 1) % insights.length)}
+                    >
+                      <i className="fa-solid fa-shuffle" aria-hidden="true"></i>Próximo
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-ghost !py-2 !px-3.5 text-sm"
+                      onClick={() => { copiar(insight.txt); setCopiado(true); setTimeout(() => setCopiado(false), 1600); }}
+                    >
+                      <i className={`fa-solid ${copiado ? "fa-check" : "fa-copy"}`} aria-hidden="true"></i>
+                      <span className="hidden sm:inline">{copiado ? "Copiado!" : "Copiar"}</span>
+                    </button>
                   </div>
-                </div>
-                <p className="font-display font-extrabold text-[2.6rem] leading-none mt-4" style={{ color: resColor }}>
-                  {brl(resumo.res)}
-                </p>
-                <div className="mt-3">
-                  <Spark id="hero" values={resumo.rows.map((r) => r.resultado_primario)} color={pos ? "#10B981" : "#D9A821"} height={54} />
-                </div>
-                <div className="grid grid-cols-2 gap-3 mt-4 pt-4" style={{ borderTop: "1px solid var(--border)" }}>
-                  <div className="flex items-center gap-2.5">
-                    <span className="kpi-ic text-emerald-500"><i className="fa-solid fa-arrow-trend-up"></i></span>
-                    <div>
-                      <p className="text-[11px] tx-mut uppercase tracking-wider">Receita</p>
-                      <p className="font-bold">{brl(resumo.rec)}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2.5">
-                    <span className="kpi-ic text-rose-500"><i className="fa-solid fa-arrow-trend-down"></i></span>
-                    <div>
-                      <p className="text-[11px] tx-mut uppercase tracking-wider">Despesa</p>
-                      <p className="font-bold">{brl(resumo.des)}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
+                </section>
+              )}
 
-            {/* kpis */}
-            <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mt-5">
-              <div className="panel p-5">
-                <div className="flex items-center gap-2.5">
-                  <span className="kpi-ic text-emerald-500"><i className="fa-solid fa-sack-dollar"></i></span>
-                  <p className="text-[11px] font-semibold tx-mut uppercase tracking-widest">Arrecadado</p>
-                </div>
-                <p className="font-display font-bold text-[1.7rem] mt-2 text-emerald-500">{brl(resumo.rec)}</p>
-                <p className="text-xs tx-faint mt-0.5">receita líquida no período</p>
-                <div className="mt-2"><Spark id="krec" values={resumo.rows.map((r) => r.receita)} color="#10B981" /></div>
-              </div>
-              <div className="panel p-5">
-                <div className="flex items-center gap-2.5">
-                  <span className="kpi-ic text-rose-500"><i className="fa-solid fa-money-bill-transfer"></i></span>
-                  <p className="text-[11px] font-semibold tx-mut uppercase tracking-widest">Executado</p>
-                </div>
-                <p className="font-display font-bold text-[1.7rem] mt-2 text-rose-500">{brl(resumo.des)}</p>
-                <p className="text-xs tx-faint mt-0.5">despesa primária total</p>
-                <div className="mt-2"><Spark id="kdes" values={resumo.rows.map((r) => r.despesa)} color="#F43F5E" /></div>
-              </div>
-              <div className="panel p-5">
-                <div className="flex items-center gap-2.5">
-                  <span className="kpi-ic text-amber-500"><i className="fa-solid fa-scale-balanced"></i></span>
-                  <p className="text-[11px] font-semibold tx-mut uppercase tracking-widest">Resultado primário</p>
-                </div>
-                <p className="font-display font-bold text-[1.7rem] mt-2" style={{ color: resColor }}>
-                  {(pos ? "+" : "-") + brl(Math.abs(resumo.res)).slice(3)}
-                </p>
-                <p className="text-xs tx-faint mt-0.5">
-                  {pos ? "Superavit" : "Deficit"} ({((resumo.res / resumo.rec) * 100).toFixed(1)}% da receita)
-                </p>
-                <div className="mt-2">
-                  <Spark id="kres" values={resumo.rows.map((r) => r.resultado_primario)} color={pos ? "#10B981" : "#D9A821"} fill={false} />
-                </div>
-              </div>
-              <div className="panel p-5">
-                <div className="flex items-center gap-2.5">
-                  <span className="kpi-ic text-sky-500"><i className="fa-solid fa-gauge-high"></i></span>
-                  <p className="text-[11px] font-semibold tx-mut uppercase tracking-widest">Gasto médio mensal</p>
-                </div>
-                <p className="font-display font-bold text-[1.7rem] mt-2 text-sky-500">{brl(resumo.med)}</p>
-                <p className="text-xs tx-faint mt-0.5">média do período filtrado</p>
-                <div className="mt-2"><Spark id="kmed" values={resumo.rows.map((r) => r.despesa)} color="#38BDF8" /></div>
-              </div>
-            </section>
+              <ErrorBoundary><Suspense fallback={<Skeleton />}><Panorama data={data} anos={anosSet} modo={modo} setModo={setModo} /></Suspense></ErrorBoundary>
+              <AdSlot name="hero" />
+              <ErrorBoundary><Suspense fallback={<Skeleton />}><ReceitasDespesas R={R} D={D} /></Suspense></ErrorBoundary>
+              <AdSlot name="mid" />
+              <ErrorBoundary><Suspense fallback={<Skeleton />}><Orgaos todos={data.orgaos_todos} anos={anosSet} poderes={poderes} setPoderes={setPoderes} /></Suspense></ErrorBoundary>
+              <ErrorBoundary><Suspense fallback={<Skeleton />}><Poderes podm={data.poderes} anos={anosSet} /></Suspense></ErrorBoundary>
+              <AdSlot name="bottom" />
+              <ErrorBoundary><Suspense fallback={<Skeleton />}><Metodologia /></Suspense></ErrorBoundary>
+              <ErrorBoundary><Suspense fallback={<Skeleton />}><Privacidade /></Suspense></ErrorBoundary>
+            </>
+          )}
+        </main>
 
-            {/* destaque */}
-            <section className="panel p-5 mt-4 flex items-center gap-4 flex-wrap">
-              <span className="icon-chip" style={{ background: "linear-gradient(135deg,rgba(217,168,33,.25),rgba(217,168,33,.08))", borderColor: "rgba(217,168,33,.4)", color: "#D9A821" }}>
-                <i className="fa-solid fa-lightbulb"></i>
-              </span>
-              <p className="text-[1.05rem] flex-1 min-w-[220px]" dangerouslySetInnerHTML={{ __html: insights[insightIdx % Math.max(1, insights.length)] || "" }} />
-              <div className="flex gap-2">
-                <button
-                  className="btn-ghost !py-2 !px-3.5 text-sm"
-                  onClick={() => setInsightIdx((i) => i + 1 + Math.floor(Math.random() * Math.max(1, insights.length - 1)))}
-                >
-                  <i className="fa-solid fa-shuffle"></i>Embaralhar
-                </button>
-                <button
-                  className="btn-ghost !py-2 !px-3.5 text-sm"
-                  onClick={() => {
-                    const tmp = document.createElement("div");
-                    tmp.innerHTML = insights[insightIdx % Math.max(1, insights.length)] || "";
-                    navigator.clipboard?.writeText(tmp.innerText);
-                  }}
-                >
-                  <i className="fa-solid fa-copy"></i><span className="hidden sm:inline">Copiar</span>
-                </button>
-              </div>
-            </section>
-
-            <Panorama data={data} anos={anosSet} modo={modo} setModo={setModo} />
-            <ReceitasDespesas R={R} D={D} />
-            <Orgaos todos={data.orgaos_todos} anos={anosSet} poderes={poderes} setPoderes={setPoderes} />
-            <Poderes podm={data.poderes} anos={anosSet} />
-            <Metodologia />
-          </>
-        )}
-
-        <footer className="fixed bottom-0 inset-x-0 z-40 backdrop-blur-md" style={{ background: "var(--nav)", borderTop: "1px solid var(--border)" }}>
-          <div className="max-w-6xl mx-auto px-4 h-12 flex items-center gap-3 text-xs tx-mut">
-            <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg flex-none" style={{ background: "linear-gradient(135deg,#10B981,#0E7490)" }}>
-              <i className="fa-solid fa-landmark text-[11px]" style={{ color: "#04120C" }}></i>
+        <footer style={{ borderTop: "1px solid var(--border)" }}>
+          <div className="max-w-6xl mx-auto px-4 py-5 flex items-center gap-3 text-xs tx-mut flex-wrap">
+            <BrandMark size={24} />
+            <span>Observatório dos Dados · Tesouro Transparente (ODbL) + SIOP</span>
+            <span className="ml-auto flex gap-4">
+              <a href="#metodologia" className="hover:opacity-70 transition">Metodologia</a>
+              <a href="#privacidade" className="hover:opacity-70 transition">Privacidade</a>
+              <a href="#conteudo" className="hover:opacity-70 transition">Topo</a>
             </span>
-            <span className="truncate">Painel Fiscal da União · Tesouro Transparente (ODbL) + SIOP</span>
-            <span className="hidden md:inline tx-faint flex-none">· React + Chart.js</span>
-            <a href="#panorama" className="ml-auto hover:opacity-70 transition flex-none">
-              <i className="fa-solid fa-arrow-up mr-1"></i>Topo
-            </a>
           </div>
         </footer>
-      </main>
+      </div>
+      <ConsentBanner />
     </>
   );
 }

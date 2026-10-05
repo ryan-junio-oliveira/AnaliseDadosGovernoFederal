@@ -1,0 +1,30 @@
+name: Atualizar dados fiscais
+
+# Roda toda segunda 06h UTC: baixa RTN + SIOP, reprocessa, valida e commita.
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r scripts/requirements.txt
+      - run: python scripts/atualizar.py
+      - run: python scripts/validar.py
+      - name: Commit dados atualizados
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/data/*.json public/data/uf/ data/*.csv 2>/dev/null || true
+          git diff --cached --quiet || git commit -m "chore(dados): atualiza RTN+SIOP via Actions"
+          git push || echo "nada a enviar"

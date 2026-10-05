@@ -26,6 +26,13 @@ ChartJS.register(
 );
 
 ChartJS.defaults.font.family = "Inter, system-ui, sans-serif";
+ChartJS.defaults.plugins.tooltip.backgroundColor = "#101014";
+ChartJS.defaults.plugins.tooltip.borderColor = "rgba(255,255,255,.14)";
+ChartJS.defaults.plugins.tooltip.borderWidth = 1;
+ChartJS.defaults.plugins.tooltip.padding = 12;
+ChartJS.defaults.plugins.tooltip.boxPadding = 5;
+ChartJS.defaults.plugins.tooltip.titleFont = { weight: "600", size: 12 };
+ChartJS.defaults.plugins.tooltip.bodyFont = { size: 12 };
 
 export { Bar, Doughnut, Line };
 

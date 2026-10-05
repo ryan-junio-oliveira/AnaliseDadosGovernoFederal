@@ -1,27 +1,29 @@
-import { SectionHead, Seg } from "../components/ui.jsx";
-import { acum12, brl } from "../lib/data.js";
+import { SectionHead, Seg, useMediaQuery } from "../components/ui.jsx";
+import { acum12, anoDe, brl } from "../lib/data.js";
 import { Bar, themed } from "../lib/charts.jsx";
 import { useTheme } from "../lib/theme.jsx";
+import { useMemo } from "react";
 
 export default function Panorama({ data, anos, modo, setModo }) {
   const { theme } = useTheme();
-  const rows = data.mensal.filter((r) => anos.has(new Date(r.mes).getFullYear()));
+  const isMobile = useMediaQuery("(max-width: 640px)");
+  const rows = useMemo(() => data.mensal.filter((r) => anos.has(anoDe(r.mes))), [data, anos]);
   const view = modo === "acum12" ? acum12(rows) : [...rows].sort((a, b) => a.mes.localeCompare(b.mes));
   const an = data.anual.filter((a) => anos.has(a.ano));
   const anosKey = [...anos].sort().join("");
 
   return (
     <section id="panorama" className="scroll-mt-24">
-      <SectionHead icon="fa-chart-line" eyebrow="Panorama fiscal" title="Receita, despesa e resultado mês a mês" />
+      <SectionHead index="01" eyebrow="Panorama fiscal" title="Receita, despesa e resultado mês a mês" />
       <div className="panel p-5 sm:p-6">
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           <Seg active={modo === "mensal"} onClick={() => setModo("mensal")}>Mensal</Seg>
           <Seg active={modo === "acum12"} onClick={() => setModo("acum12")}>Acumulado 12 meses</Seg>
           <span className="text-xs tx-faint ml-auto">Dezembro concentra 13º, precatórios e restos a pagar</span>
         </div>
-        <div style={{ height: 380 }}>
+        <div style={{ height: isMobile ? 300 : 380 }}>
           <Bar
-            key={`geral-${theme}-${modo}-${anosKey}`}
+            key={`geral-${theme}-${modo}-${anosKey}-${isMobile ? "m" : "d"}`}
             type="bar"
             data={{
               labels: view.map((r) => r.mes.slice(0, 7)),
@@ -32,7 +34,7 @@ export default function Panorama({ data, anos, modo, setModo }) {
                   type: "bar",
                   label: "Resultado",
                   data: view.map((r) => r.resultado_primario / 1e9),
-                  backgroundColor: view.map((r) => (r.resultado_primario >= 0 ? "#10B98155" : "#D9A82155")),
+                  backgroundColor: view.map((r) => (r.resultado_primario >= 0 ? "#10B98155" : "#F59E0B55")),
                   yAxisID: "y1",
                 },
               ],
@@ -42,6 +44,7 @@ export default function Panorama({ data, anos, modo, setModo }) {
               maintainAspectRatio: false,
               interaction: { mode: "index", intersect: false },
               scales: {
+                x: { ticks: { maxTicksLimit: isMobile ? 8 : 14, maxRotation: isMobile ? 45 : 0 } },
                 y: { title: { display: true, text: "R$ bi" } },
                 y1: { position: "right", grid: { drawOnChartArea: false } },
               },
@@ -55,7 +58,7 @@ export default function Panorama({ data, anos, modo, setModo }) {
             <i className="fa-solid fa-chart-column text-emerald-500 mr-2"></i>Totais anuais{" "}
             <span className="text-xs font-body font-normal tx-faint">em R$ trilhões</span>
           </h3>
-          <div style={{ height: 340 }} className="mt-2">
+          <div style={{ height: isMobile ? 280 : 340 }} className="mt-2">
             <Bar
               key={`anual-${theme}`}
               data={{
@@ -68,7 +71,10 @@ export default function Panorama({ data, anos, modo, setModo }) {
               options={themed(theme, {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: { y: { title: { display: true, text: "R$ tri" } } },
+                scales: {
+                  x: { ticks: { maxRotation: isMobile ? 45 : 0 } },
+                  y: { title: { display: true, text: "R$ tri" } },
+                },
               })}
             />
           </div>
@@ -78,7 +84,7 @@ export default function Panorama({ data, anos, modo, setModo }) {
             <i className="fa-solid fa-scale-balanced text-amber-500 mr-2"></i>Resultado primário por ano{" "}
             <span className="text-xs font-body font-normal tx-faint">em R$ bilhões</span>
           </h3>
-          <div style={{ height: 340 }} className="mt-2">
+          <div style={{ height: isMobile ? 280 : 340 }} className="mt-2">
             <Bar
               key={`res-${theme}`}
               data={{
@@ -87,7 +93,7 @@ export default function Panorama({ data, anos, modo, setModo }) {
                   {
                     data: an.map((a) => a.resultado_primario / 1e9),
                     borderRadius: 6,
-                    backgroundColor: an.map((a) => (a.resultado_primario >= 0 ? "#10B981" : "#D9A821")),
+                    backgroundColor: an.map((a) => (a.resultado_primario >= 0 ? "#10B981" : "#F59E0B")),
                   },
                 ],
               }}
@@ -101,11 +107,11 @@ export default function Panorama({ data, anos, modo, setModo }) {
           </div>
           <div className="text-sm tx-mut mt-3 flex flex-col gap-1.5">
             {an.map((a) => (
-              <div key={a.ano} className="flex justify-between gap-2 py-1.5" style={{ borderBottom: "1px solid var(--border-soft)" }}>
+              <div key={a.ano} className="flex justify-between gap-2 py-1.5 flex-wrap" style={{ borderBottom: "1px solid var(--border-soft)" }}>
                 <span className="font-display font-bold" style={{ color: "var(--text)" }}>{a.ano}</span>
-                <span>
+                <span className="text-right">
                   {brl(a.receita)} arrecadados · {brl(a.despesa)} gastos ·{" "}
-                  <b style={{ color: a.resultado_primario >= 0 ? "#34D399" : "#B98A12" }}>{brl(a.resultado_primario)}</b>
+                  <b style={{ color: a.resultado_primario >= 0 ? "#10B981" : "#B98A12" }}>{brl(a.resultado_primario)}</b>
                 </span>
               </div>
             ))}

@@ -9,14 +9,17 @@ ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS))
 from coleta import coleta_rtn
+from janela import ANOS
 
-print("=== 1/4 baixando RTN mais recente ===")
+print("=== 1/5 baixando RTN mais recente ===")
 coleta_rtn()
-print("=== 2/4 reprocessando serie historica (RTN) ===")
+print("=== 2/5 reprocessando serie historica (RTN) ===")
 subprocess.run([sys.executable, str(SCRIPTS / "processa_rtn.py")], check=True, cwd=ROOT)
-print("=== 3/4 coletando orgaos SIOP (todos os Poderes) ===")
+print("=== 3/5 coletando orgaos SIOP (todos os Poderes) ===")
 subprocess.run([sys.executable, str(SCRIPTS / "coleta_orgaos_todos.py"),
-                "2022", "2023", "2024", "2025", "2026"], check=True, cwd=ROOT)
-print("=== 4/4 exportando JSONs p/ public/data ===")
+                *[str(a) for a in ANOS]], check=True, cwd=ROOT)
+print("=== 4/5 exportando JSONs p/ public/data ===")
 subprocess.run([sys.executable, str(SCRIPTS / "export_json.py")], check=True, cwd=ROOT)
+print("=== 5/5 validando JSONs do frontend ===")
+subprocess.run([sys.executable, str(SCRIPTS / "validar.py")], check=True, cwd=ROOT)
 print("OK: dados atualizados. Rode o app (rodar.bat) para ver.")

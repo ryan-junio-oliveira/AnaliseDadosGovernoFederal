@@ -1,27 +1,32 @@
-import { SectionHead, Seg } from "../components/ui.jsx";
+import { SectionHead, Seg, useMediaQuery } from "../components/ui.jsx";
 import { Bar, themed } from "../lib/charts.jsx";
 import { PODERES, PODER_COR, agregarOrgaos, brl, poderNome } from "../lib/data.js";
 import { useTheme } from "../lib/theme.jsx";
+import { useMemo } from "react";
 
 export default function Orgaos({ todos, anos, poderes, setPoderes }) {
   const { theme } = useTheme();
-  const poderesSet = new Set(poderes);
-  const OT = agregarOrgaos(todos, anos, poderesSet);
-  const TOP = OT.slice(0, 15);
+  const isMobile = useMediaQuery("(max-width: 640px)");
+  const poderesSet = useMemo(() => new Set(poderes), [poderes]);
+  const OT = useMemo(() => agregarOrgaos(todos, anos, poderesSet), [todos, anos, poderesSet]);
+  const TOP_N = isMobile ? 10 : 15;
+  const TOP = useMemo(() => OT.slice(0, TOP_N), [OT, TOP_N]);
+  const corta = (s) => {
+    const lim = isMobile ? 22 : 34;
+    return s.length > lim ? s.slice(0, lim - 1) + "…" : s;
+  };
 
-  const porPoder = PODERES.map((p) => ({
+  const porPoder = useMemo(() => PODERES.map((p) => ({
     poder: p,
     valor: todos.filter((r) => anos.has(r.ano) && r.poder === p).reduce((a, b) => a + b.pago, 0),
-  }));
+  })), [todos, anos]);
   const maxTop = Math.max(1, TOP[0]?.valor || 1);
 
   return (
     <section id="orgaos" className="scroll-mt-24">
       <SectionHead
-        icon="fa-building-columns"
-        iconStyle={{ background: "linear-gradient(135deg,rgba(56,189,248,.2),rgba(16,185,129,.12))", borderColor: "rgba(56,189,248,.35)", color: "#38BDF8" }}
+        index="04"
         eyebrow="Execução por órgão superior"
-        eyebrowColor="#38BDF8"
         title="Todos os órgãos: Executivo, Legislativo e Judiciário"
       />
       <div className="flex items-center gap-2 mb-4 flex-wrap">
@@ -48,12 +53,12 @@ export default function Orgaos({ todos, anos, poderes, setPoderes }) {
         <h3 className="font-display font-semibold mb-1">
           Maiores executores <span className="text-xs font-body font-normal tx-faint">valores pagos no período filtrado, em R$ bi</span>
         </h3>
-        <div style={{ height: 520 }} className="mt-2">
+        <div style={{ height: isMobile ? 400 : 520 }} className="mt-2">
           <Bar
-            key={`org-${theme}`}
+            key={`org-${theme}-${isMobile ? "m" : "d"}`}
             data={{
-              labels: TOP.map((i) => (i.nome.length > 34 ? i.nome.slice(0, 33) + "…" : i.nome)),
-              datasets: [{ data: TOP.map((i) => +(i.valor / 1e9).toFixed(1)), backgroundColor: TOP.map((i) => PODER_COR[i.poder] || "#38BDF8"), borderRadius: 6 }],
+              labels: TOP.map((i) => corta(i.nome)),
+              datasets: [{ data: TOP.map((i) => +(i.valor / 1e9).toFixed(1)), backgroundColor: TOP.map((i) => PODER_COR[i.poder] || "#0E7CB5"), borderRadius: 6 }],
             }}
             options={themed(theme, {
               responsive: true,
@@ -72,9 +77,9 @@ export default function Orgaos({ todos, anos, poderes, setPoderes }) {
           {OT.length === 0 && <p className="text-sm tx-faint">Nenhum órgão no filtro.</p>}
           {OT.map((it, i) => (
             <div key={it.nome}>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
                 <span className="rank-pos">{i + 1}</span>
-                <span className="text-sm flex-1" style={{ color: "var(--text)" }}>{it.nome}</span>
+                <span className="text-sm flex-1 min-w-[140px] leading-snug" style={{ color: "var(--text)" }}>{it.nome}</span>
                 <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ color: PODER_COR[it.poder], border: `1px solid ${PODER_COR[it.poder]}55` }}>
                   {poderNome(it.poder)}
                 </span>

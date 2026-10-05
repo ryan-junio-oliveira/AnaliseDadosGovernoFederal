@@ -2,6 +2,17 @@
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+BASE = Path(__file__).resolve().parent.parent
+DATA = BASE / "data"
+
+FALTANDO = DATA / "rtn_mensal_2022_2026.csv"
+if not FALTANDO.exists():
+    print("ERRO: base da Uniao nao encontrada em data/.")
+    print("Rode a opcao 1 do menu.bat (Atualizar TUDO) uma vez para baixar")
+    print("o RTN e gerar os CSVs. UFs do SICONFI nao precisam desta etapa.")
+    raise SystemExit(1)
+
 from dados import load
 import pandas as pd
 

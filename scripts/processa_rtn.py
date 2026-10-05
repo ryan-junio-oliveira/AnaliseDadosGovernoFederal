@@ -1,7 +1,11 @@
-"""Processa RTN série histórica (tabela 1.1) em CSVs limpos 2022-2026."""
+"""Processa RTN série histórica (tabela 1.1) em CSVs limpos (janela rolante)."""
 import openpyxl
 import pandas as pd
 from pathlib import Path
+
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from janela import ANO_FIM, ANO_INI, MES_FIM, MES_INI
 
 BASE = Path(__file__).resolve().parent.parent
 XLSX = BASE / "data" / "rtn_serie_historica.xlsx"
@@ -31,7 +35,7 @@ mensal = pd.DataFrame({
     "despesa": DESPESA_TOTAL.values * 1e6,
     "resultado_primario": RESULTADO.values * 1e6,
 })
-mensal = mensal[(mensal["mes"] >= "2022-01-01") & (mensal["mes"] <= "2026-12-01")]
+mensal = mensal[(mensal["mes"] >= MES_INI) & (mensal["mes"] <= MES_FIM)]
 mensal.to_csv(DATA / "rtn_mensal_2022_2026.csv", index=False)
 print(f"mensal: {len(mensal)} meses, {mensal['mes'].min()} -> {mensal['mes'].max()}")
 print(mensal.groupby(mensal["mes"].dt.year)[["receita","despesa"]].sum()/1e12)
@@ -45,7 +49,7 @@ rec_rows = []
 for idx, nome in mapa_rec.items():
     s = get_row(idx)
     for d, v in s.items():
-        if pd.to_datetime(d) >= pd.to_datetime("2022-01-01"):
+        if pd.to_datetime(d) >= pd.to_datetime(MES_INI):
             rec_rows.append({"mes": pd.to_datetime(d), "tipo": nome, "valor": float(v)*1e6})
 pd.DataFrame(rec_rows).to_csv(DATA / "receita_por_tipo.csv", index=False)
 
@@ -58,7 +62,7 @@ des_rows = []
 for idx, nome in mapa_des.items():
     s = get_row(idx)
     for d, v in s.items():
-        if pd.to_datetime(d) >= pd.to_datetime("2022-01-01"):
+        if pd.to_datetime(d) >= pd.to_datetime(MES_INI):
             des_rows.append({"mes": pd.to_datetime(d), "funcao": nome, "valor": float(v)*1e6})
 pd.DataFrame(des_rows).to_csv(DATA / "despesa_por_funcao.csv", index=False)
 
@@ -70,7 +74,7 @@ org_rows = []
 for nome, idx in org_map.items():
     s = get_row(idx)
     for d, v in s.items():
-        if pd.to_datetime(d) >= pd.to_datetime("2022-01-01"):
+        if pd.to_datetime(d) >= pd.to_datetime(MES_INI):
             org_rows.append({"mes": pd.to_datetime(d), "orgao": nome, "valor": float(v)*1e6})
 pd.DataFrame(org_rows).to_csv(DATA / "despesa_por_orgao.csv", index=False)
 print("OK: receita_por_tipo, despesa_por_funcao, despesa_por_orgao gerados com DADOS REAIS do RTN.")
@@ -84,7 +88,7 @@ poderes = pd.DataFrame({
     "legjud_mpudpu_custeio_capital": LEGJUD.values * 1e6,
     "despesa_total": DESPESA_TOTAL.values * 1e6,
 })
-poderes = poderes[(poderes["mes"] >= "2022-01-01") & (poderes["mes"] <= "2026-12-01")]
+poderes = poderes[(poderes["mes"] >= MES_INI) & (poderes["mes"] <= MES_FIM)]
 poderes["participacao"] = poderes["legjud_mpudpu_custeio_capital"] / poderes["despesa_total"] * 100
 poderes.to_csv(DATA / "poderes_mensal.csv", index=False)
 print(poderes.groupby(poderes["mes"].dt.year)["legjud_mpudpu_custeio_capital"].sum() / 1e9)

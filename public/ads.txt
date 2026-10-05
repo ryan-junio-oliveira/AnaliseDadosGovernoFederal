@@ -1,0 +1,4 @@
+# Seller info (substitua pelo seu ID do AdSense quando a conta for aprovada)
+# Formato: google.com, pub-SEUNUMERO, DIRECT, f75b9886cd7969fb
+# Sem este arquivo o Google pode limitar os anuncios. Saiba mais:
+# https://support.google.com/adsense/answer/1217164

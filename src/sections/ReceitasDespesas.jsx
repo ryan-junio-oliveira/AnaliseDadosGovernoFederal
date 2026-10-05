@@ -1,4 +1,4 @@
-import { SectionHead } from "../components/ui.jsx";
+import { SectionHead, useMediaQuery } from "../components/ui.jsx";
 import { Bar, Doughnut, themed } from "../lib/charts.jsx";
 import { brl } from "../lib/data.js";
 import { useTheme } from "../lib/theme.jsx";
@@ -9,10 +9,10 @@ function RankList({ items, tone }) {
     <div className="flex flex-col gap-4">
       {items.map((it, i) => (
         <div key={it.nome}>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
             <span className="rank-pos">{i + 1}</span>
-            <span className="text-sm flex-1" style={{ color: "var(--text)" }}>{it.nome}</span>
-            <span className="text-sm text-right">
+            <span className="text-sm flex-1 min-w-0 leading-snug" style={{ color: "var(--text)" }}>{it.nome}</span>
+            <span className="text-sm text-right flex-none">
               <b style={{ color: "var(--text)" }}>{brl(it.valor)}</b> <span className="tx-faint">· {it.pct}%</span>
             </span>
           </div>
@@ -27,23 +27,24 @@ function RankList({ items, tone }) {
 
 export default function ReceitasDespesas({ R, D }) {
   const { theme } = useTheme();
+  const isMobile = useMediaQuery("(max-width: 640px)");
   return (
     <>
       <section id="receitas" className="scroll-mt-24">
-        <SectionHead icon="fa-sack-dollar" eyebrow="Origem dos recursos" title="De onde vem o dinheiro" />
+        <SectionHead index="02" eyebrow="Origem dos recursos" title="De onde vem o dinheiro" />
         <div className="flex flex-col gap-4">
           <div className="panel p-5">
             <h3 className="font-display font-semibold mb-1">Composição da arrecadação</h3>
             <p className="text-xs tx-faint mb-2">Participação de cada fonte no período filtrado</p>
-            <div style={{ height: 420 }}>
+            <div style={{ height: isMobile ? 380 : 420 }}>
               <Doughnut
-                key={`rec-${theme}`}
+                key={`rec-${theme}-${isMobile ? "m" : "d"}`}
                 data={{
                   labels: R.map((i) => i.nome),
                   datasets: [
                     {
                       data: R.map((i) => +(i.valor / 1e9).toFixed(1)),
-                      backgroundColor: ["#10B981", "#38BDF8", "#D9A821", "#2DD4BF", "#F43F5E", "#FB923C", "#94A3B8", "#A3E635", "#F472B6", "#60A5FA", "#FBBF24", "#34D399", "#64748B"],
+                      backgroundColor: ["#10B981", "#0E7CB5", "#F59E0B", "#0E9F8A", "#F43F5E", "#D96C1E", "#64748B", "#65A30D", "#DB2777", "#4F46E5", "#B45309", "#9333EA", "#334155"],
                       borderColor: theme === "light" ? "#ffffff" : "#0F1D33",
                       borderWidth: 3,
                     },
@@ -53,7 +54,7 @@ export default function ReceitasDespesas({ R, D }) {
                   responsive: true,
                   maintainAspectRatio: false,
                   cutout: "62%",
-                  plugins: { legend: { position: "right" } },
+                  plugins: { legend: { position: isMobile ? "bottom" : "right" } },
                 })}
               />
             </div>
@@ -67,8 +68,7 @@ export default function ReceitasDespesas({ R, D }) {
 
       <section id="despesas" className="scroll-mt-24">
         <SectionHead
-          icon="fa-money-bill-transfer"
-          iconStyle={{ background: "linear-gradient(135deg,rgba(244,63,94,.22),rgba(251,146,60,.12))", borderColor: "rgba(244,63,94,.35)", color: "#F43F5E" }}
+          index="03"
           eyebrow="Aplicação dos recursos"
           eyebrowColor="#F43F5E"
           title="Com o que se gasta"
