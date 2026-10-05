@@ -216,7 +216,7 @@ body::before {
 
 /* ---------- consentimento LGPD ---------- */
 .consent {
-  position: fixed; left: 12px; right: 12px; bottom: 60px; z-index: 50;
+  position: fixed; left: 12px; right: 12px; bottom: 76px; z-index: 50;
   max-width: 42rem; margin: 0 auto;
   display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
   background: var(--panel);

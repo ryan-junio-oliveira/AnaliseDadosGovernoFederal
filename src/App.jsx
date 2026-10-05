@@ -207,7 +207,7 @@ export default function App() {
       </header>
 
       <div>
-        <main id="conteudo" className="max-w-6xl mx-auto px-4" style={{ paddingTop: headH + 8, paddingBottom: 40 }}>
+        <main id="conteudo" className="max-w-6xl mx-auto px-4" style={{ paddingTop: headH + 8, paddingBottom: 104 }}>
           {loading && <Skeleton lines={4} />}
           {error && !loading && (
             <div className="panel p-10 mt-6 text-center" role="alert">
@@ -346,8 +346,8 @@ export default function App() {
           )}
         </main>
 
-        <footer style={{ borderTop: "1px solid var(--border)" }}>
-          <div className="max-w-6xl mx-auto px-4 py-5 flex items-center gap-3 text-xs tx-mut flex-wrap">
+        <footer className="fixed bottom-0 inset-x-0 z-40 backdrop-blur-md" style={{ background: "var(--nav)", borderTop: "1px solid var(--border)" }}>
+          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3 text-xs tx-mut flex-wrap">
             <BrandMark size={24} />
             <span>Observatório dos Dados · Tesouro Transparente (ODbL) + SIOP</span>
             <span className="ml-auto flex gap-4">
