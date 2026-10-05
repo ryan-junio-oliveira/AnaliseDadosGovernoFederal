@@ -11,6 +11,7 @@ const ReceitasDespesas = lazy(() => import("./sections/ReceitasDespesas.jsx"));
 const Orgaos = lazy(() => import("./sections/Orgaos.jsx"));
 const Poderes = lazy(() => import("./sections/Poderes.jsx"));
 const Metodologia = lazy(() => import("./sections/Metodologia.jsx"));
+const Sobre = lazy(() => import("./sections/Sobre.jsx"));
 const Privacidade = lazy(() => import("./sections/Privacidade.jsx"));
 
 const toggleIn = (arr, v, min = 1) =>
@@ -339,6 +340,7 @@ export default function App() {
               <ErrorBoundary><Suspense fallback={<Skeleton />}><Poderes podm={data.poderes} anos={anosSet} /></Suspense></ErrorBoundary>
               <AdSlot name="bottom" />
               <ErrorBoundary><Suspense fallback={<Skeleton />}><Metodologia /></Suspense></ErrorBoundary>
+              <ErrorBoundary><Suspense fallback={<Skeleton />}><Sobre /></Suspense></ErrorBoundary>
               <ErrorBoundary><Suspense fallback={<Skeleton />}><Privacidade /></Suspense></ErrorBoundary>
             </>
           )}
@@ -350,6 +352,7 @@ export default function App() {
             <span>Observatório dos Dados · Tesouro Transparente (ODbL) + SIOP</span>
             <span className="ml-auto flex gap-4">
               <a href="#metodologia" className="hover:opacity-70 transition">Metodologia</a>
+              <a href="#sobre" className="hover:opacity-70 transition">Sobre</a>
               <a href="#privacidade" className="hover:opacity-70 transition">Privacidade</a>
               <a href="#conteudo" className="hover:opacity-70 transition">Topo</a>
             </span>
