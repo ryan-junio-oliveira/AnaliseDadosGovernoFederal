@@ -39,6 +39,7 @@
 }
 
 html { scroll-behavior: smooth; }
+section[id] { scroll-margin-top: 140px; }
 body {
   background: var(--bg);
   color: var(--text);

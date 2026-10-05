@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Metodologia from "./sections/Metodologia.jsx";
 import Orgaos from "./sections/Orgaos.jsx";
 import Panorama from "./sections/Panorama.jsx";
@@ -18,6 +18,15 @@ export default function App() {
   const [modo, setModo] = useState("mensal");
   const [poderes, setPoderes] = useState(PODERES);
   const [insightIdx, setInsightIdx] = useState(0);
+  const headRef = useRef(null);
+  const [headH, setHeadH] = useState(72);
+
+  useEffect(() => {
+    const update = () => setHeadH(headRef.current?.offsetHeight || 72);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
 
   const anosSet = useMemo(() => new Set(anos), [anos]);
   const resumo = useMemo(
@@ -75,8 +84,8 @@ export default function App() {
         </div>
       </div>
 
-      {/* navegação */}
-      <header className="sticky top-0 z-40 backdrop-blur-md" style={{ background: "var(--nav)", borderBottom: "1px solid var(--border)" }}>
+      {/* navegação fixa */}
+      <header ref={headRef} className="fixed top-0 inset-x-0 z-40 backdrop-blur-md" style={{ background: "var(--nav)", borderBottom: "1px solid var(--border)" }}>
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3 flex-wrap">
           <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl" style={{ background: "linear-gradient(135deg,#10B981,#0E7490)" }}>
             <i className="fa-solid fa-landmark text-lg" style={{ color: "#04120C" }}></i>
@@ -105,7 +114,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 pb-20">
+      <main className="max-w-6xl mx-auto px-4" style={{ paddingTop: headH + 24, paddingBottom: 72 }}>
         {loading && (
           <div className="panel p-10 mt-10 text-center tx-mut">
             <i className="fa-solid fa-circle-notch fa-spin mr-2"></i>Carregando dados…
@@ -268,14 +277,17 @@ export default function App() {
           </>
         )}
 
-        <footer className="mt-14 pt-6 flex items-center gap-3 flex-wrap text-sm tx-mut" style={{ borderTop: "1px solid var(--border)" }}>
-          <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg" style={{ background: "linear-gradient(135deg,#10B981,#0E7490)" }}>
-            <i className="fa-solid fa-landmark" style={{ color: "#04120C" }}></i>
-          </span>
-          <span>Painel Fiscal da União · Dados: Tesouro Transparente (ODbL) + SIOP · React + Chart.js</span>
-          <a href="#panorama" className="ml-auto hover:opacity-70 transition">
-            <i className="fa-solid fa-arrow-up mr-1"></i>Voltar ao topo
-          </a>
+        <footer className="fixed bottom-0 inset-x-0 z-40 backdrop-blur-md" style={{ background: "var(--nav)", borderTop: "1px solid var(--border)" }}>
+          <div className="max-w-6xl mx-auto px-4 h-12 flex items-center gap-3 text-xs tx-mut">
+            <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg flex-none" style={{ background: "linear-gradient(135deg,#10B981,#0E7490)" }}>
+              <i className="fa-solid fa-landmark text-[11px]" style={{ color: "#04120C" }}></i>
+            </span>
+            <span className="truncate">Painel Fiscal da União · Tesouro Transparente (ODbL) + SIOP</span>
+            <span className="hidden md:inline tx-faint flex-none">· React + Chart.js</span>
+            <a href="#panorama" className="ml-auto hover:opacity-70 transition flex-none">
+              <i className="fa-solid fa-arrow-up mr-1"></i>Topo
+            </a>
+          </div>
         </footer>
       </main>
     </>
