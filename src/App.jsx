@@ -208,10 +208,6 @@ export default function App() {
           </nav>
           <span className="ml-auto flex-none">{themeBtn}</span>
         </div>
-        <div className="max-w-6xl mx-auto px-4 pt-1.5 flex items-center gap-2">
-          <div className="flex-none"><EnteSelector value={ente.id} onChange={setEnteId} /></div>
-          <div className="flex-1 min-w-0"><YearFilter anos={anos} anosBtns={anosBtns} setAnos={setAnos} /></div>
-        </div>
         <nav className="max-w-6xl mx-auto px-4 mobilenav !py-1.5 xl:hidden" aria-label="Seções">
           {NAV.map(([href, label]) => (
             <a key={href} href={href}>{label}</a>
@@ -236,6 +232,18 @@ export default function App() {
 
           {data && resumo && (
             <>
+              {/* filtros: acima do conteudo, largura total */}
+              <section className="panel p-4 mt-4 flex flex-col gap-3" aria-label="Filtros">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <p className="dateline">Filtros</p>
+                  <EnteSelector value={ente.id} onChange={setEnteId} />
+                  <span className="tx-faint text-xs ml-auto hidden sm:inline">
+                    {anosBtns.length} anos · {intervalo?.periodo || ""}
+                  </span>
+                </div>
+                <YearFilter anos={anos} anosBtns={anosBtns} setAnos={setAnos} />
+              </section>
+
               {/* cabeçalho da página */}
               <section className="pt-6 lg:pt-8" aria-label="Resumo fiscal">
                 <p className="dateline">Visão geral · {intervalo?.periodo || ""}</p>
