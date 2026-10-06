@@ -340,8 +340,8 @@ export default function App() {
               <ErrorBoundary><Suspense fallback={<Skeleton />}><Orgaos todos={data.orgaos_todos} anos={anosSet} poderes={poderes} setPoderes={setPoderes} /></Suspense></ErrorBoundary>
               <ErrorBoundary><Suspense fallback={<Skeleton />}><Poderes podm={data.poderes} anos={anosSet} /></Suspense></ErrorBoundary>
               <AdSlot name="bottom" />
-              <ErrorBoundary><Suspense fallback={<Skeleton />}><Metodologia /></Suspense></ErrorBoundary>
               <ErrorBoundary><Suspense fallback={<Skeleton />}><Conjuntura data={data} anos={anosSet} /></Suspense></ErrorBoundary>
+              <ErrorBoundary><Suspense fallback={<Skeleton />}><Metodologia /></Suspense></ErrorBoundary>
               <ErrorBoundary><Suspense fallback={<Skeleton />}><Sobre /></Suspense></ErrorBoundary>
               <ErrorBoundary><Suspense fallback={<Skeleton />}><Privacidade /></Suspense></ErrorBoundary>
             </>

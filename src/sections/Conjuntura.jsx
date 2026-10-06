@@ -69,7 +69,7 @@ export default function Conjuntura({ data, anos }) {
   if (!temMensal && !temEmpresas && !temCrime && !temDes && !temIpo && !dv.length) {
     return (
       <section id="conjuntura" className="scroll-mt-24">
-        <SectionHead index="07" eyebrow="Preços, juros, emprego e empresas" title="Conjuntura" />
+        <SectionHead index="06" eyebrow="Preços, juros, emprego e empresas" title="Conjuntura" />
         <div className="panel p-6 text-sm tx-mut">Sem dados de conjuntura para o filtro atual.</div>
       </section>
     );
