@@ -1,5 +1,9 @@
 import { SectionHead } from "../components/ui.jsx";
 
+// Seção única de transparência: metodologia + fontes + institucional.
+// (Antes existiam "Metodologia" e "Sobre" separadas listando as mesmas fontes
+// com textos diferentes — fundidas aqui para eliminar a redundância.
+// A âncora #sobre foi mantida no bloco institucional para compatibilidade.)
 const FONTES = [
   {
     icon: "fa-landmark",
@@ -9,10 +13,11 @@ const FONTES = [
     linkLabel: "tesourotransparente.gov.br",
     badges: ["Receitas", "Despesas", "Resultado primário", "Poderes (agregado)"],
     itens: [
+      "Receita líquida, despesa primária e resultado mensal da União, por tributo e por grupo de despesa, além do agregado de custeio e capital do Legislativo, Judiciário, MPU e DPU.",
       "Série histórica mensal em XLSX (baixada via scripts/coleta.py), valores correntes em R$ milhões, regime de caixa, conceito “acima da linha”.",
       "Janela rolante de uma década: do ano atual menos 10 até o ano atual (ex.: 2016–2026 em 2026; 2017–2027 em 2027, automático). Receita líquida = receita total menos transferências a estados e municípios.",
       "Cobre: receita por tributo (IR, COFINS, PIS/Pasep, CSLL, IPI, IOF, Previdência, concessões, dividendos, royalties), grupos de despesa e o agregado Legislativo/Judiciário/MPU/DPU (item 4.3.12).",
-      "Licença ODbL. Alimenta: mensal.json, anual.json, receitas.json, despesas.json, poderes.json.",
+      "Atualização mensal, conforme calendário do Tesouro. Licença ODbL. Alimenta: mensal.json, anual.json, receitas.json, despesas.json, poderes.json.",
     ],
   },
   {
@@ -23,10 +28,24 @@ const FONTES = [
     linkLabel: "siop.planejamento.gov.br",
     badges: ["Todos os órgãos superiores", "Todos os Poderes"],
     itens: [
+      "Execução orçamentária por órgão superior (dotação, empenhado, liquidado e pago) de todos os Poderes — base da seção Órgãos.",
       "Dumps N-Triples anuais loaAAAA.zip (~40 MB/ano), parseados por scripts/coleta_orgaos_todos.py (~9 milhões de triplas/ano). Anos = mesma janela rolante do RTN.",
       "Agregação por órgão superior: dotação inicial, empenhado, liquidado e pago — Executivo, Legislativo (Câmara, Senado, TCU), Judiciário (STF, STJ, JF, JT, JE…), MPU, CNMP e DPU.",
       "Conceito: execução orçamentária total (pago — inclui juros e amortização da dívida, transferências e operações de crédito).",
-      "Alimenta: orgaos_todos.json (seção Órgãos).",
+      "Atualização anual, por exercício da LOA. Alimenta: orgaos_todos.json (seção Órgãos) e emendas.json (RP 6/7/8/9 — bloco Emendas).",
+    ],
+  },
+  {
+    icon: "fa-map",
+    color: "#0E7CB5",
+    nome: "SICONFI / STN — RREO Anexo 1 (estados e DF)",
+    link: "https://apidatalake.tesouro.gov.br/docs/siconfi/",
+    linkLabel: "apidatalake.tesouro.gov.br",
+    badges: ["SP, RJ, MG, RS, PR disponíveis", "demais em coleta"],
+    itens: [
+      "Balanço orçamentário bimestral dos estados e do DF (receita realizada × despesa paga) — base da expansão para as UFs. Disponíveis: SP, RJ, MG, RS, PR (2016→, RREO Anexo 1).",
+      "Resultado das UFs é orçamentário (não primário) e a série é bimestral (mês = 1º mês do bimestre).",
+      "Atualização bimestral, conforme homologação dos entes no SICONFI. API pública, sem autenticação.",
     ],
   },
   {
@@ -35,48 +54,22 @@ const FONTES = [
     nome: "Banco Central — SGS (Sistema Gerenciador de Séries Temporais)",
     link: "https://dadosabertos.bcb.gov.br/",
     linkLabel: "dadosabertos.bcb.gov.br",
-    badges: ["IPCA", "Selic", "Dólar", "IBC-Br", "Dívidas % PIB"],
+    badges: ["IPCA", "Selic", "Dólar", "Ibovespa"],
     itens: [
-      "Séries mensais via API pública (SGS 433, 1, 432, 24364, 13762 e 4513), sem token. IPCA em 12 meses calculado aqui a partir da variação mensal. Ibovespa via Yahoo Finance (fechamento mensal ajustado ^BVSP; SGS 7 descontinuada).",
-      "Alimenta: conj_mensal.json e conj_dividas.json (seção Conjuntura).",
+      "Séries mensais de preços, juros e câmbio — base da seção Economia; o IPCA mensal também alimenta o botão Real (IPCA), que reexpressa os valores fiscais.",
+      "Séries mensais via API pública (SGS 433, 1 e 432), sem token. IPCA em 12 meses calculado aqui. Ibovespa via Yahoo Finance (fechamento mensal ajustado ^BVSP).",
+      "Atualização diária/mensal, conforme a série. Licença ODbL. Alimenta: conj_mensal.json.",
     ],
   },
   {
-    icon: "fa-building",
-    color: "#7C5CBF",
-    nome: "Serasa Experian — Indicador de Falências e Recuperações Judiciais",
-    link: "https://www.serasaexperian.com.br/conteudos/indicadores-economicos/",
-    linkLabel: "serasaexperian.com.br",
-    badges: ["Pedidos RJ", "Falências"],
+    icon: "fa-users",
+    color: "#64748B",
+    nome: "SICONFI / RREO — população de referência",
+    link: "https://apidatalake.tesouro.gov.br/docs/siconfi/",
+    linkLabel: "apidatalake.tesouro.gov.br",
+    badges: ["Per capita"],
     itens: [
-      "Planilha mensal com URL descoberta automaticamente na página de indicadores. Série de processos (não CNPJs) para comparabilidade histórica.",
-      "Quebra metodológica em 2025 (processos × CNPJs) e defasagem de ~3 meses nos últimos pontos — sinalizado na seção Conjuntura.",
-      "Alimenta: conj_empresas.json (aberturas × fechamentos vêm do Mapa de Empresas via data/manual/).",
-    ],
-  },
-  {
-    icon: "fa-handshake",
-    color: "#0E7CB5",
-    nome: "CVM — Ofertas públicas de distribuição (dados abertos)",
-    link: "https://dados.cvm.gov.br/dataset/oferta-distrib",
-    linkLabel: "dados.cvm.gov.br",
-    badges: ["IPOs", "Volume R$"],
-    itens: [
-      "ZIP mensal com ofertas registradas (regime antigo + Resolução 160). IPO = oferta inicial de ações com registro encerrado; deduplicado por emissor (uma oferta tem várias linhas).",
-      "Alimenta: conj_ipos.json — quantidade e volume por ano na seção Conjuntura.",
-    ],
-  },
-  {
-    icon: "fa-briefcase",
-    color: "#0E7CB5",
-    nome: "IBGE — PNAD Contínua trimestral (SIDRA 4095) + manuais",
-    link: "https://sidra.ibge.gov.br/tabela/4095",
-    linkLabel: "sidra.ibge.gov.br",
-    badges: ["Desocupação", "Homicídios", "Empresas"],
-    itens: [
-      "Desocupação trimestral tentada via API SIDRA com fallback (mantém última coleta se a API recusar).",
-      "Homicídios anuais (Atlas da Violência IPEA/FBSP) e abertas × fechadas (Mapa de Empresas) via data/manual/*.csv — 2 min/mês, documentado no script.",
-      "Blocos só aparecem no front quando há dados.",
+      "População informada no próprio RREO, usada como referência para a receita por habitante no comparador entre entes.",
     ],
   },
 ];
@@ -92,7 +85,7 @@ const NOTAS = [
     icon: "fa-triangle-exclamation",
     color: "#F43F5E",
     title: "Limites",
-    text: "RTN até jul/2026 e SIOP até o exercício vigente, valores nominais (sem IPCA). A seção Órgãos usa execução orçamentária total, enquanto as demais usam o conceito primário do RTN: os totais não são diretamente comparáveis.",
+    text: "RTN até jul/2026 e SIOP até o exercício vigente. O padrão é nominal (corrente); o botão Real (IPCA) reexpressa a década em R$ do último mês do filtro. A seção Órgãos usa execução orçamentária total, enquanto as demais usam o conceito primário do RTN: os totais não são diretamente comparáveis.",
   },
 ];
 
@@ -102,7 +95,7 @@ export default function Metodologia() {
       <SectionHead
         index="08"
         eyebrow="Transparência"
-        title="Metodologia e fontes"
+        title="Metodologia, fontes e sobre"
       />
       <div className="panel p-5 sm:p-6">
         <h3 className="font-display font-semibold mb-4">
@@ -153,6 +146,34 @@ export default function Metodologia() {
             <p className="text-sm tx-mut mt-1 leading-relaxed">{c.text}</p>
           </div>
         ))}
+      </div>
+
+      {/* Bloco institucional (antiga seção "Sobre", fundida aqui). A âncora
+          #sobre é mantida para não quebrar links existentes. */}
+      <span id="sobre" className="scroll-mt-24 block" aria-hidden="true" />
+      <div className="panel p-5 sm:p-6 mt-4 text-sm tx-mut leading-relaxed flex flex-col gap-3">
+        <h3 className="font-display font-semibold" style={{ color: "var(--text)" }}>
+          <i className="fa-solid fa-circle-info mr-2 tx-mut"></i>
+          Sobre o Observatório
+        </h3>
+        <p>
+          O <b style={{ color: "var(--text)" }}>Observatório dos Dados</b> é uma iniciativa{" "}
+          <b style={{ color: "var(--text)" }}>independente e sem fins lucrativos</b>, sem vínculo com
+          governos, partidos ou empresas. Existe para traduzir as contas públicas em visualizações
+          que qualquer pessoa entende: quanto se arrecada, quanto se gasta e onde o dinheiro vai parar.
+        </p>
+        <p>
+          A plataforma é mantida com recursos próprios e, para cobrir custos de infraestrutura
+          (domínio e hospedagem), exibe <b style={{ color: "var(--text)" }}>anúncios do Google</b>.
+          Não há paywall, não vendemos dados e não coletamos dados pessoais — o detalhamento
+          está em <a href="#privacidade" style={{ color: "var(--text)", textDecoration: "underline" }}>Privacidade e anúncios</a>.
+        </p>
+        <p>
+          <b style={{ color: "var(--text)" }}>Todos os números vêm de fontes oficiais do próprio governo</b>,
+          federal ou estadual. Não fazemos projeções nem estimativas próprias: o que você vê aqui é
+          o dado publicado, apenas reorganizado. Quando uma fonte republica valores, atualizamos
+          junto na rotina semanal.
+        </p>
       </div>
     </section>
   );

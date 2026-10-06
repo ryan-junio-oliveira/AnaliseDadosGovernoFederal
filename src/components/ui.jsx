@@ -56,6 +56,24 @@ export function Seg({ active, onClick, children }) {
   );
 }
 
+/**
+ * Selo de cobertura da base: separa o que é década fiscal completa
+ * do que tem cobertura menor (ex.: Serasa 2024–2026, Atlas 2023–2024).
+ * `parcial` pinta o selo de âmbar; sem ele, tom neutro.
+ */
+export function SeloCobertura({ faixa, fonte, parcial }) {
+  if (!faixa || !faixa.n) return null;
+  return (
+    <span
+      className={`chip${parcial ? " chip-warn" : ""}`}
+      title={parcial ? "Não abrange a década fiscal completa" : "Cobre a década fiscal"}
+    >
+      <i className="fa-solid fa-calendar-days" aria-hidden="true"></i>
+      {faixa.rotulo}{fonte ? ` · ${fonte}` : ""}
+    </span>
+  );
+}
+
 const reduceMotion =
   typeof window !== "undefined" &&
   window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;

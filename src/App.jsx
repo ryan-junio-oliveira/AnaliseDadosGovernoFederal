@@ -1,20 +1,20 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import EnteSelector from "./components/EnteSelector.jsx";
 import { AdSlot, ConsentBanner } from "./components/Ads.jsx";
-import { BrandMark, ErrorBoundary, Skeleton, Spark } from "./components/ui.jsx";
-import { PODERES, YEARS, agregar, anosComDados, brl, comparativo, intervaloDados, resumoMensal, useData, varPct } from "./lib/data.js";
+import { BrandMark, ErrorBoundary, Seg, Skeleton, Spark } from "./components/ui.jsx";
+import { PODERES, YEARS, agregar, anosComDados, brl, comparativo, construirDeflator, intervaloDados, periodicidade, resumoMensal, useData, varPct } from "./lib/data.js";
 import { getEnte } from "./lib/entes.js";
 import { useTheme } from "./lib/theme.jsx";
 
 const Panorama = lazy(() => import("./sections/Panorama.jsx"));
-const Conjuntura = lazy(() => import("./sections/Conjuntura.jsx"));
-const Seguranca = lazy(() => import("./sections/Seguranca.jsx"));
+const Economia = lazy(() => import("./sections/Economia.jsx"));
 const ReceitasDespesas = lazy(() => import("./sections/ReceitasDespesas.jsx"));
 const Orgaos = lazy(() => import("./sections/Orgaos.jsx"));
 const Poderes = lazy(() => import("./sections/Poderes.jsx"));
+const Comparar = lazy(() => import("./sections/Comparar.jsx"));
 const Metodologia = lazy(() => import("./sections/Metodologia.jsx"));
-const Sobre = lazy(() => import("./sections/Sobre.jsx"));
 const Privacidade = lazy(() => import("./sections/Privacidade.jsx"));
+const PlanoPage = lazy(() => import("./sections/plano/PlanoPage.jsx"));
 
 const toggleIn = (arr, v, min = 1) =>
   arr.includes(v) ? (arr.length > min ? arr.filter((x) => x !== v) : arr) : [...arr, v];
@@ -32,15 +32,17 @@ function copiar(texto) {
   return Promise.resolve();
 }
 
-function exportCSV(rows, anos) {
-  const head = "mes;receita;despesa;resultado_primario\n";
+function exportCSV(rows, anos, enteId, bimestral) {
+  const head = bimestral ? "mes;bimestre;receita;despesa;resultado_primario\n" : "mes;receita;despesa;resultado_primario\n";
   const body = rows
-    .map((r) => [r.mes, Math.round(r.receita), Math.round(r.despesa), Math.round(r.resultado_primario)].join(";"))
+    .map((r) => (bimestral
+      ? [r.mes, r.bimestre ?? "", Math.round(r.receita), Math.round(r.despesa), Math.round(r.resultado_primario)].join(";")
+      : [r.mes, Math.round(r.receita), Math.round(r.despesa), Math.round(r.resultado_primario)].join(";")))
     .join("\n");
   const blob = new Blob(["\uFEFF" + head + body], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `observatorio-fiscal-${[...anos].sort().join("-")}.csv`;
+  a.download = `observatorio-fiscal-${enteId}-${[...anos].sort().join("-")}.csv`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
@@ -106,9 +108,20 @@ export default function App() {
   const { loading, error, data } = useData(ente);
   const [anos, setAnos] = useState(YEARS);
   const [modo, setModo] = useState("mensal");
+  const [real, setReal] = useState(false); // false = nominal (corrente); true = R$ do mês-base (IPCA)
   const [poderes, setPoderes] = useState(PODERES);
   const [insightIdx, setInsightIdx] = useState(0);
   const [copiado, setCopiado] = useState(false);
+  // Visão: painel fiscal (padrão) ou página dedicada Plano Brasil 2040.
+  const [visao, setVisao] = useState(() => {
+    try { return localStorage.getItem("pfu-visao") || "painel"; } catch { return "painel"; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("pfu-visao", visao); } catch { /* sem storage */ }
+    document.title = visao === "plano"
+      ? "Brasil 2040 — Um Projeto de País"
+      : "Observatório dos Dados — Receitas, despesas e resultado fiscal";
+  }, [visao]);
   const headRef = useRef(null);
   const [headH, setHeadH] = useState(64);
 
@@ -128,18 +141,32 @@ export default function App() {
     if (data) setAnos(anosComDados(data.mensal));
   }, [data]);
   const intervalo = useMemo(() => (data ? intervaloDados(data.mensal) : null), [data]);
+  // Textos por ente: União usa "a União/da União/primário"; UFs usam o nome
+  // próprio e "resultado orçamentário" (RREO: receita realizada − despesa paga).
+  // (Declarados aqui em cima: o useMemo dos insights, abaixo, já os utiliza.)
+  const eUniao = ente.id === "uniao";
+  const curto = ente.nome.split(" (")[0];
+  const sujeito = eUniao ? "a União" : curto;
+  const deEnte = eUniao ? "da União" : ente.id === "df" ? "do Distrito Federal" : `de ${curto}`;
+  const rotResultado = eUniao ? "Resultado primário" : "Resultado orçamentário";
+  // Deflator IPCA: só existe com conjuntura (União). Sem ele, tudo é nominal.
+  const temDeflator = !!data?.conj_mensal?.some((r) => Number.isFinite(r.ipca_m));
+  const defl = useMemo(
+    () => (real && data ? construirDeflator(data.conj_mensal, anosSet) : null),
+    [real, data, anosSet]
+  );
   const resumo = useMemo(
-    () => (data ? resumoMensal(data.mensal, anosSet) : null),
-    [data, anosSet]
+    () => (data ? resumoMensal(data.mensal, anosSet, defl?.f, periodicidade(data.mensal)) : null),
+    [data, anosSet, defl]
   );
   const comp = useMemo(
-    () => (data ? comparativo(data.mensal, anosSet) : null),
-    [data, anosSet]
+    () => (data ? comparativo(data.mensal, anosSet, defl?.f, periodicidade(data.mensal)) : null),
+    [data, anosSet, defl]
   );
   const { R, D, insights } = useMemo(() => {
     if (!data || !resumo) return { R: [], D: [], insights: [] };
-    const R = agregar(data.receitas, "tipo", anosSet);
-    const D = agregar(data.despesas, "funcao", anosSet);
+    const R = agregar(data.receitas, "tipo", anosSet, defl?.f);
+    const D = agregar(data.despesas, "funcao", anosSet, defl?.f);
     const { rec, des, res, med } = resumo;
     const ys = [...anosSet].sort();
     const periodo = `${ys[0]}–${ys[ys.length - 1]}`;
@@ -156,14 +183,14 @@ export default function App() {
       R,
       D,
       insights: [
-        { html: (<>De {periodo}, a União gastou <b>{brl(des)}</b> e arrecadou <b>{brl(rec)}</b>.</>), txt: `De ${periodo}, a União gastou ${brl(des)} e arrecadou ${brl(rec)}.` },
+        { html: (<>De {periodo}, {sujeito} gastou <b>{brl(des)}</b> e arrecadou <b>{brl(rec)}</b>.</>), txt: `De ${periodo}, ${sujeito} gastou ${brl(des)} e arrecadou ${brl(rec)}.` },
         { html: (<>O maior destino do gasto é <b>{D[0]?.nome}</b>, com {D[0]?.pct}% do total aplicado.</>), txt: `O maior destino do gasto é ${D[0]?.nome}, com ${D[0]?.pct}% do total aplicado.` },
         { html: (<>A principal fonte de receita é <b>{R[0]?.nome}</b>, com {R[0]?.pct}% da arrecadação.</>), txt: `A principal fonte de receita é ${R[0]?.nome}, com ${R[0]?.pct}% da arrecadação.` },
-        { html: (<>Resultado primário do período: <b>{brl(res)}</b> ({pctRes}% da receita).</>), txt: `Resultado primário do período: ${brl(res)} (${pctRes}% da receita).` },
-        { html: (<>Gasto médio mensal da União: <b>{brl(med)}</b>.</>), txt: `Gasto médio mensal da União: ${brl(med)}.` },
+        { html: (<>{rotResultado} do período: <b>{brl(res)}</b> ({pctRes}% da receita).</>), txt: `${rotResultado} do período: ${brl(res)} (${pctRes}% da receita).` },
+        { html: (<>Gasto médio mensal {deEnte}: <b>{brl(med)}</b>.</>), txt: `Gasto médio mensal {deEnte}: ${brl(med)}.` },
       ],
     };
-  }, [data, resumo, anosSet]);
+  }, [data, resumo, anosSet, sujeito, deEnte, rotResultado]);
 
   const maxMes = useMemo(() => {
     if (!data?.mensal?.length) return "—";
@@ -202,14 +229,26 @@ export default function App() {
           <BrandMark size={30} />
           <div className="leading-tight min-w-0">
             <p className="font-display font-bold truncate">Observatório dos Dados</p>
-            <p className="text-[10px] tx-faint hidden min-[420px]:block">União {intervalo?.anos || ""}</p>
+            <p className="text-[10px] tx-faint hidden min-[420px]:block">{eUniao ? "União" : ente.sigla} {intervalo?.anos || ""}</p>
           </div>
-          <span className="ml-auto flex-none">{themeBtn}</span>
+          <span className="ml-auto flex-none flex items-center gap-1.5">
+            <button type="button" className={`segbtn${visao === "painel" ? " on" : ""}`} onClick={() => setVisao("painel")}>
+              Painel
+            </button>
+            <button type="button" className={`segbtn${visao === "plano" ? " on" : ""}`} onClick={() => setVisao("plano")} title="Página dedicada ao Plano Brasil 2040">
+              Plano 2040
+            </button>
+            {themeBtn}
+          </span>
         </div>
       </header>
 
       <div>
         <main id="conteudo" className="max-w-6xl mx-auto px-4" style={{ paddingTop: headH + 8, paddingBottom: 104 }}>
+          {visao === "plano" ? (
+            <ErrorBoundary><Suspense fallback={<Skeleton />}><PlanoPage /></Suspense></ErrorBoundary>
+          ) : (
+            <>
           {loading && <Skeleton lines={4} />}
           {error && !loading && (
             <div className="panel p-10 mt-6 text-center" role="alert">
@@ -231,10 +270,24 @@ export default function App() {
                   <p className="dateline">Filtros</p>
                   <EnteSelector value={ente.id} onChange={setEnteId} />
                   <span className="tx-faint text-xs ml-auto hidden sm:inline">
-                    {anosBtns.length} anos · {intervalo?.periodo || ""}
+                    {anosBtns.length} anos fiscais · {intervalo?.periodo || ""}
                   </span>
                 </div>
                 <YearFilter anos={anos} anosBtns={anosBtns} setAnos={setAnos} />
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {temDeflator && (
+                    <>
+                      <Seg active={!real} onClick={() => setReal(false)}>Nominal</Seg>
+                      <Seg active={real} onClick={() => setReal(true)}>Real (IPCA)</Seg>
+                    </>
+                  )}
+                  {real && defl && (
+                    <span className="text-xs tx-faint">valores em {defl.rotulo}</span>
+                  )}
+                </div>
+                <p className="text-xs tx-faint leading-relaxed">
+                  O filtro de anos vale para a década fiscal (série bimestral nas UFs).
+                </p>
               </section>
 
               {/* cabeçalho da página */}
@@ -242,16 +295,18 @@ export default function App() {
                 <p className="dateline">Visão geral · {intervalo?.periodo || ""}</p>
                 <div className="flex items-end justify-between gap-3 flex-wrap mt-1.5">
                   <h1 className="font-display font-bold text-[1.75rem] sm:text-[2.1rem] leading-none">
-                    Resultado fiscal da União
+                    Resultado fiscal {deEnte}
                   </h1>
                   <div className="flex gap-2">
-                    <button type="button" className="btn-ghost !py-2 !px-3.5 text-sm" onClick={() => exportCSV(resumo.rows, anos)}>
+                    <button type="button" className="btn-ghost !py-2 !px-3.5 text-sm" onClick={() => exportCSV(resumo.rows, anos, ente.id, !eUniao)}>
                       <i className="fa-solid fa-download" aria-hidden="true"></i>CSV
                     </button>
                   </div>
                 </div>
                 <p className="tx-faint text-[13px] mt-2">
-                  Receita líquida × despesa primária · valores correntes · RTN Tabela 1.1 + SIOP
+                  {eUniao
+                    ? <>Receita líquida × despesa primária · {defl ? `valores em ${defl.rotulo} (IPCA)` : "valores correntes"} · RTN Tabela 1.1 + SIOP</>
+                    : <>Receita realizada × despesa paga (bimestral) · valores correntes · RREO Anexo 1 · SICONFI</>}
                 </p>
               </section>
 
@@ -265,7 +320,7 @@ export default function App() {
                   <p className="font-display font-bold text-[1.6rem] mt-2 c-rec">{brl(resumo.rec)}</p>
                   <Delta valor={dRec} bomQuandoSobe rotulo={rotuloVs} />
                   <p className="text-xs tx-faint mt-0.5">receita líquida no período</p>
-                  <div className="mt-2"><Spark id="krec" values={resumo.rows.map((r) => r.receita)} color="#10B981" /></div>
+                  <div className="mt-2"><Spark id="krec" values={resumo.rows.map((r) => r.receita * (defl?.f?.(r.mes) || 1))} color="#10B981" /></div>
                 </div>
                 <div className="panel p-5">
                   <div className="flex items-center gap-2.5">
@@ -275,12 +330,12 @@ export default function App() {
                   <p className="font-display font-bold text-[1.6rem] mt-2 c-des">{brl(resumo.des)}</p>
                   <Delta valor={dDes} bomQuandoSobe={false} rotulo={rotuloVs} />
                   <p className="text-xs tx-faint mt-0.5">despesa primária total</p>
-                  <div className="mt-2"><Spark id="kdes" values={resumo.rows.map((r) => r.despesa)} color="#F43F5E" /></div>
+                  <div className="mt-2"><Spark id="kdes" values={resumo.rows.map((r) => r.despesa * (defl?.f?.(r.mes) || 1))} color="#F43F5E" /></div>
                 </div>
                 <div className="panel p-5">
                   <div className="flex items-center gap-2.5">
                     <span className="kpi-ic c-warn"><i className="fa-solid fa-scale-balanced" aria-hidden="true"></i></span>
-                    <p className="text-[11px] font-semibold tx-mut uppercase tracking-widest">Resultado primário</p>
+                    <p className="text-[11px] font-semibold tx-mut uppercase tracking-widest">{rotResultado}</p>
                   </div>
                   <p className="font-display font-bold text-[1.6rem] mt-2" style={{ color: resColor }}>
                     {(pos ? "+" : "-") + brl(Math.abs(resumo.res)).slice(3)}
@@ -292,7 +347,7 @@ export default function App() {
                     {pos ? "Superavit" : "Deficit"} ({((resumo.res / Math.max(1, resumo.rec)) * 100).toFixed(1)}% da receita)
                   </p>
                   <div className="mt-2">
-                    <Spark id="kres" values={resumo.rows.map((r) => r.resultado_primario)} color={pos ? "#10B981" : "#F59E0B"} fill={false} />
+                    <Spark id="kres" values={resumo.rows.map((r) => r.resultado_primario * (defl?.f?.(r.mes) || 1))} color={pos ? "#10B981" : "#F59E0B"} fill={false} />
                   </div>
                 </div>
                 <div className="panel p-5">
@@ -303,7 +358,7 @@ export default function App() {
                   <p className="font-display font-bold text-[1.6rem] mt-2 c-blue">{brl(resumo.med)}</p>
                   <Delta valor={dMed} bomQuandoSobe={false} rotulo={rotuloVs} />
                   <p className="text-xs tx-faint mt-0.5">média do período filtrado</p>
-                  <div className="mt-2"><Spark id="kmed" values={resumo.rows.map((r) => r.despesa)} color="#0E7CB5" /></div>
+                  <div className="mt-2"><Spark id="kmed" values={resumo.rows.map((r) => r.despesa * (defl?.f?.(r.mes) || 1))} color="#0E7CB5" /></div>
                 </div>
               </section>
 
@@ -334,18 +389,26 @@ export default function App() {
                 </section>
               )}
 
-              <ErrorBoundary><Suspense fallback={<Skeleton />}><Panorama data={data} anos={anosSet} modo={modo} setModo={setModo} /></Suspense></ErrorBoundary>
+              <ErrorBoundary><Suspense fallback={<Skeleton />}><Panorama data={data} anos={anosSet} modo={modo} setModo={setModo} defl={defl} bimestral={!eUniao} per={periodicidade(data.mensal)} /></Suspense></ErrorBoundary>
               <AdSlot name="hero" />
-              <ErrorBoundary><Suspense fallback={<Skeleton />}><ReceitasDespesas R={R} D={D} /></Suspense></ErrorBoundary>
+              {R.length > 0 && D.length > 0 && (
+              <ErrorBoundary><Suspense fallback={<Skeleton />}><ReceitasDespesas R={R} D={D} defl={defl} /></Suspense></ErrorBoundary>
+              )}
               <AdSlot name="mid" />
-              <ErrorBoundary><Suspense fallback={<Skeleton />}><Orgaos todos={data.orgaos_todos} anos={anosSet} poderes={poderes} setPoderes={setPoderes} /></Suspense></ErrorBoundary>
-              <ErrorBoundary><Suspense fallback={<Skeleton />}><Poderes podm={data.poderes} anos={anosSet} /></Suspense></ErrorBoundary>
+              {data.orgaos_todos?.length > 0 && (
+              <ErrorBoundary><Suspense fallback={<Skeleton />}><Orgaos todos={data.orgaos_todos} anos={anosSet} poderes={poderes} setPoderes={setPoderes} defl={defl} emendas={data.emendas || []} /></Suspense></ErrorBoundary>
+              )}
+              {data.poderes?.length > 0 && (
+              <ErrorBoundary><Suspense fallback={<Skeleton />}><Poderes podm={data.poderes} anos={anosSet} defl={defl} /></Suspense></ErrorBoundary>
+              )}
+              <ErrorBoundary><Suspense fallback={<Skeleton />}><Comparar /></Suspense></ErrorBoundary>
               <AdSlot name="bottom" />
-              <ErrorBoundary><Suspense fallback={<Skeleton />}><Conjuntura data={data} anos={anosSet} /></Suspense></ErrorBoundary>
-              <ErrorBoundary><Suspense fallback={<Skeleton />}><Seguranca data={data} anos={anosSet} /></Suspense></ErrorBoundary>
+              {/* Economia (IPCA/Selic/dólar/Ibovespa) acima de Metodologia/fontes. */}
+              <ErrorBoundary><Suspense fallback={<Skeleton />}><Economia data={data} anos={anosSet} /></Suspense></ErrorBoundary>
               <ErrorBoundary><Suspense fallback={<Skeleton />}><Metodologia /></Suspense></ErrorBoundary>
-              <ErrorBoundary><Suspense fallback={<Skeleton />}><Sobre /></Suspense></ErrorBoundary>
               <ErrorBoundary><Suspense fallback={<Skeleton />}><Privacidade /></Suspense></ErrorBoundary>
+            </>
+          )}
             </>
           )}
         </main>
@@ -355,7 +418,8 @@ export default function App() {
             <BrandMark size={24} />
             <span>Observatório dos Dados · Tesouro Transparente (ODbL) + SIOP</span>
             <span className="ml-auto flex gap-4">
-              <a href="#metodologia" className="hover:opacity-70 transition">Metodologia</a>
+              <button type="button" className="hover:opacity-70 transition" onClick={() => { setVisao("plano"); document.getElementById("conteudo")?.scrollIntoView(); }}>Plano 2040</button>
+              <a href="#metodologia" className="hover:opacity-70 transition" onClick={() => setVisao("painel")}>Metodologia</a>
               <a href="#sobre" className="hover:opacity-70 transition">Sobre</a>
               <a href="#privacidade" className="hover:opacity-70 transition">Privacidade</a>
               <a href="#conteudo" className="hover:opacity-70 transition">Topo</a>

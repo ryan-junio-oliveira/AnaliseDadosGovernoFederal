@@ -146,6 +146,12 @@ body::before {
   border: 1px solid var(--border); background: var(--chip-bg);
   border-radius: 6px; padding: 0.35rem 0.6rem;
 }
+/* Cobertura parcial: não abrange a década fiscal completa */
+.chip-warn {
+  color: #B98A12;
+  border-color: rgba(217, 168, 33, 0.45);
+  background: rgba(217, 168, 33, 0.08);
+}
 .rank-pos {
   display: inline-flex; align-items: center; justify-content: center;
   width: 28px; height: 28px; border-radius: 7px; flex: none;

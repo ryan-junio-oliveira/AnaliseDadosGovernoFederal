@@ -6,9 +6,10 @@ Fontes automaticas (sem token):
   IBC-Br dessaz. (24364), DBGG % PIB (13762), DLSP % PIB (4513)
 - Serasa Experian: falencias e RJs (XLSX com URL descoberta na pagina
   de indicadores; metodologia mudou em 2025 — ver Metodologia no front)
-- IBGE SIDRA tab. 4095 (PNADc trimestral, taxa de desocupacao):
-  tentativa com fallback — se a API recusar (ex. 403), mantem o CSV
-  anterior e avisa. Nao quebra a coleta das demais fontes.
+- IBGE SIDRA tab. 4099 (PNADc trimestral, taxa de desocupacao):
+  via endpoint /values/ (o caminho /valores/ retorna 403 para bots);
+  se a API recusar, mantem o CSV anterior e avisa. Nao quebra a coleta
+  das demais fontes.
 
 Fontes manuais (data/manual/*.csv — 2 min/mes, instrucoes no print):
 - manual_empresas.csv: mes,abertas,fechadas (Mapa de Empresas, gov.br)
@@ -33,7 +34,7 @@ MANUAL = DATA / "manual"
 MANUAL.mkdir(exist_ok=True)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from janela import ANO_INI
+from janela import ANO_FIM, ANO_INI
 
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) ObservatorioDosDados",
       "Accept": "application/json"}
@@ -51,12 +52,15 @@ def get_text(url: str, timeout: int = 60) -> str:
 
 
 # ---------------- BCB SGS ----------------
-SGS = {"dolar": 1, "selic": 432, "ipca_m": 433, "ibc": 24364, "dbgg": 13762, "dlsp": 4513}
+SGS = {"dolar": 1, "selic": 432, "ipca_m": 433, "ibc": 24364, "dbgg": 13762, "dlsp": 4513,
+       "nfsp_prim": 4649, "nfsp_juros": 4616, "nfsp_nom": 4583,
+       "dbgg_rs": 13761, "dlsp_rs": 4478}
 
 
 def coleta_bcb() -> dict:
-    """Retorna {serie: [(date, valor)]} com valores float."""
+    """Retorna {serie: [(date, valor)]} com valores float (retry por ano)."""
     from datetime import date, datetime
+    import time
     out: dict[str, list] = {}
     anos = list(range(2014, date.today().year + 1))
     for nome, cod in SGS.items():
@@ -66,10 +70,17 @@ def coleta_bcb() -> dict:
             for a in anos:
                 url = (f"https://api.bcb.gov.br/dados/serie/bcdata.sgs.{cod}/dados"
                        f"?formato=json&dataInicial=01/01/{a}&dataFinal=31/12/{a}")
-                try:
-                    raw = get_json(url)
-                except Exception as e:
-                    print(f"[bcb:{nome}:{a}] aviso: {e}")
+                raw = None
+                for t in range(3):
+                    try:
+                        raw = get_json(url)
+                        break
+                    except Exception as e:
+                        if t == 2:
+                            print(f"[bcb:{nome}:{a}] aviso apos retry: {e}")
+                        else:
+                            time.sleep(5 * (t + 1))
+                if raw is None:
                     continue
                 for r in raw:
                     try:
@@ -83,6 +94,38 @@ def coleta_bcb() -> dict:
         out[nome] = sorted(pts)
         print(f"[bcb:{nome}] {len(pts)} pontos")
     return out
+
+
+def mescla_existente(csv_nome: str, novos: list, chave: str = "mes",
+                     corte: str | None = None) -> list:
+    """Une com o CSV da coleta anterior, preferindo valores novos não-nulos.
+
+    Evita que uma janela de instabilidade do BCB (502) encolha a série
+    publicada — o padrão é somar cobertura, nunca substituir no escuro.
+    `corte` remove chaves anteriores à janela rolante (ex.: "2016-01").
+    """
+    p = DATA / csv_nome
+    if not p.exists():
+        return novos
+    try:
+        import pandas as pd
+        velhos = pd.read_csv(p).to_dict("records")
+    except Exception:
+        return novos
+    por = {str(r[chave]): dict(r) for r in velhos}
+    for r in novos:
+        k = str(r[chave])
+        if k in por:
+            base = por[k]
+            for c, v in r.items():
+                if v is not None and v == v:  # NaN != NaN
+                    base[c] = v
+            por[k] = base
+        else:
+            por[k] = dict(r)
+    if corte:
+        por = {k: v for k, v in por.items() if k >= corte}
+    return [por[k] for k in sorted(por)]
 
 
 def mensaliza(pts: list, como: str):
@@ -222,45 +265,38 @@ def coleta_ipos() -> list:
     return out
 
 
-# ---------------- SIDRA desemprego (tentativa com fallback) ----------------
+# ---------------- SIDRA desemprego (tab. 4099, endpoint /values/) ----------------
 def coleta_desemprego() -> list:
-    """PNADc trimestral BR (tab. 4095). Retorna [{mes, desemprego}] ou []."""
+    """PNADc trimestral BR (tab. 4099). Retorna [{mes, tri, desemprego}] ou []."""
     try:
-        url = ("https://apisidra.ibge.gov.br/valores/t/4095/n1/all/v/allxp"
-               "/p/201601-202612/c11255/0")
+        # /values/ (EN) responde; /valores/ (PT) devolve 403 para bots.
+        # Trimestres no formato AAAATT (T=01..04); pede ate o fim do ano
+        # corrente — a API devolve so os trimestres publicados.
+        url = ("https://apisidra.ibge.gov.br/values/t/4099/n1/all/v/4099"
+               f"/p/{ANO_INI}01-{ANO_FIM}04")
         raw = get_json(url)
     except Exception as e:
-        print(f"[sidra:4095] API indisponivel ({e}). Mantendo CSV anterior.")
+        print(f"[sidra:4099] API indisponivel ({e}). Mantendo CSV anterior.")
         return []
-    # descobre variavel da taxa de desocupacao e coluna do trimestre
     linhas = []
-    for r in raw:
+    for r in raw[1:]:  # [0] = cabecalho
         vals = {k: str(v) for k, v in r.items()}
-        blob = " ".join(vals.values()).lower()
-        if "desocup" not in [vals.get("V", ""), vals.get("VN", "")]:
-            nome_var = (vals.get("V", "") + " " + vals.get("VN", "")).lower()
-            if "desocup" not in nome_var:
-                continue
-        tri = next((v for v in vals.values() if "trimestre" in v.lower()), "")
-        m = re.search(r"(\d)[oº]?\s*trimestre\s*(\d{4})", tri)
+        tri_txt = vals.get("D3N", "")
+        m = re.search(r"(\d)\s*[oº]?\s*trimestre\s*(\d{4})", tri_txt)
         if not m:
             continue
         q, ano = int(m.group(1)), int(m.group(2))
+        if ano < ANO_INI:
+            continue
         fim = {1: "-03-31", 2: "-06-30", 3: "-09-30", 4: "-12-31"}[q]
         try:
-            valor = float(vals.get("V", "").replace(",", ".")) if re.match(r"^[\d,.\-]+$", vals.get("V", "")) else None
+            valor = float(str(vals.get("V", "")).replace(",", "."))
         except ValueError:
-            valor = None
-        if valor is None:
-            for v in vals.values():
-                if re.match(r"^\d{1,2},\d$", v.strip()):
-                    valor = float(v.replace(",", "."))
-                    break
-        terr = (vals.get("D1N", "") + vals.get("D1C", "")).lower()
-        if valor is not None and ("brasil" in terr or vals.get("NC", "") == "1"):
+            continue
+        if vals.get("D1N", "").lower() == "brasil":
             linhas.append({"mes": f"{ano}{fim}", "tri": f"{ano}-T{q}", "desemprego": valor})
     linhas.sort(key=lambda r: r["mes"])
-    print(f"[sidra:4095] {len(linhas)} trimestres")
+    print(f"[sidra:4099] {len(linhas)} trimestres")
     return linhas
 
 
@@ -377,26 +413,44 @@ if __name__ == "__main__":
         m_ibov = coleta_ibov()
         meses = sorted(set(m_ipca) | set(m_dolar) | set(m_selic) | set(m_ibc) | set(m_ibov))
         meses = [k for k in meses if k >= f"{ANO_INI}-01"]
-        salva([{"mes": f"{k}-01",
+        salva(mescla_existente("conj_mensal.csv", [{"mes": f"{k}-01",
                 "ipca_m": round(m_ipca[k], 2) if k in m_ipca else None,
                 "ipca_12m": a12.get(k),
                 "dolar": round(m_dolar[k], 4) if k in m_dolar else None,
                 "selic": round(m_selic[k], 2) if k in m_selic else None,
                 "ibc": round(m_ibc[k], 2) if k in m_ibc else None,
                 "ibov": m_ibov.get(k)}
-               for k in meses], "conj_mensal.csv", "conj_mensal.json")
+               for k in meses]), "conj_mensal.csv", "conj_mensal.json", corte=f"{ANO_INI}-01")
     if bcb.get("dbgg") or bcb.get("dlsp"):
         m_g = mensaliza(bcb.get("dbgg", []), "ultimo")
         m_l = mensaliza(bcb.get("dlsp", []), "ultimo")
+        m_grs = mensaliza(bcb.get("dbgg_rs", []), "ultimo")
+        m_lrs = mensaliza(bcb.get("dlsp_rs", []), "ultimo")
         meses = sorted(set(m_g) & set(m_l))
         meses = [k for k in meses if k >= f"{ANO_INI}-01"]
-        salva([{"mes": f"{k}-01", "dbgg": round(m_g[k], 2), "dlsp": round(m_l[k], 2)}
-               for k in meses], "conj_dividas.csv", "conj_dividas.json")
+        salva(mescla_existente("conj_dividas.csv", [{"mes": f"{k}-01", "dbgg": round(m_g[k], 2), "dlsp": round(m_l[k], 2),
+                "dbgg_rs": round(m_grs[k] * 1e6, 2) if k in m_grs else None,
+                "dlsp_rs": round(m_lrs[k] * 1e6, 2) if k in m_lrs else None}
+               for k in meses], corte=f"{ANO_INI}-01"), "conj_dividas.csv", "conj_dividas.json")
+    if bcb.get("nfsp_prim") or bcb.get("nfsp_juros") or bcb.get("nfsp_nom"):
+        # NFSP "abaixo da linha" (BCB): setor publico consolidado, fluxo mensal
+        # em R$ milhoes, convenção +deficit. Invertemos o sinal para o padrao
+        # do painel (+superavit), em R$.
+        m_p = mensaliza(bcb.get("nfsp_prim", []), "ultimo")
+        m_j = mensaliza(bcb.get("nfsp_juros", []), "ultimo")
+        m_n = mensaliza(bcb.get("nfsp_nom", []), "ultimo")
+        meses = sorted(set(m_p) | set(m_j) | set(m_n))
+        meses = [k for k in meses if k >= f"{ANO_INI}-01"]
+        salva(mescla_existente("conj_fiscal.csv", [{"mes": f"{k}-01",
+                "primario": round(-m_p[k] * 1e6, 2) if k in m_p else None,
+                "juros": round(-m_j[k] * 1e6, 2) if k in m_j else None,
+                "nominal": round(-m_n[k] * 1e6, 2) if k in m_n else None}
+               for k in meses], corte=f"{ANO_INI}-01"), "conj_fiscal.csv", "conj_fiscal.json")
 
     print("=== 2/5 desemprego PNADc (SIDRA, com fallback) ===")
     des = coleta_desemprego()
     if not des:
-        # fallback manual: trimestres fixos da PNADc (SIDRA tab. 4095), ex.: 2026-T2,5.4
+        # fallback manual: trimestres fixos da PNADc (SIDRA tab. 4099), ex.: 2026-T2,5.4
         pdes = MANUAL / "manual_desemprego.csv"
         if not pdes.exists():
             # âncora verificada (IBGE release 2º tri/2026); complete com os demais tris
@@ -438,6 +492,15 @@ if __name__ == "__main__":
             me = emp_map.get(mes, {})
             out.append({"mes": mes, "rj_req": r.get("rj_req"), "fal_req": r.get("fal_req"),
                         "abertas": me.get("abertas"), "fechadas": me.get("fechadas")})
+        # meses do Mapa de Empresas alem do Serasa (RJ/fal nulos): entram so
+        # com abertas/fechadas para o grafico nao ficar cego no periodo novo
+        vistos = {str(r["mes"])[:10] for r in out}
+        for mes10 in sorted(emp_map):
+            if mes10 not in vistos:
+                me = emp_map[mes10]
+                out.append({"mes": mes10, "rj_req": None, "fal_req": None,
+                            "abertas": me.get("abertas"), "fechadas": me.get("fechadas")})
+        out.sort(key=lambda r: str(r["mes"]))
         salva(out, "conj_empresas.csv", "conj_empresas.json")
         # anual: soma dos meses + âncoras pré-2024 (releases Serasa verificados)
         pave = MANUAL / "manual_empresas_anual.csv"
@@ -472,8 +535,13 @@ if __name__ == "__main__":
 
     print("=== 5/5 criminalidade (manual: Atlas da Violencia) ===")
     pcrime = MANUAL / "manual_crime.csv"
-    # âncoras verificadas (releases IPEA/FBSP); complete com os demais anos do Atlas
-    seed = {"2023": 45747, "2024": 42590}
+    # Homicidios registrados (SIM/MS) por edicao do Atlas da Violencia:
+    # 2016-2018: Atlas 2018/2019/2020; 2019: Atlas 2021; 2020-2021: Atlas 2023;
+    # 2022: Atlas 2024; 2023: Atlas 2025; 2024: Atlas 2026. Complete os novos
+    # anos a cada edicao do Atlas (SIM tem ~2 anos de defasagem).
+    seed = {"2016": 62517, "2017": 65602, "2018": 57956, "2019": 45503,
+            "2020": 49868, "2021": 47847, "2022": 46409,
+            "2023": 45747, "2024": 42590}
     atual = {}
     if pcrime.exists():
         for r in le_manual("manual_crime.csv"):
@@ -485,13 +553,32 @@ if __name__ == "__main__":
     if faltam or not pcrime.exists():
         atual.update(faltam)
         pcrime.write_text("ano,homicidios\n" + "".join(f"{a},{atual[a]}\n" for a in sorted(atual)), encoding="utf-8")
-        print(f"[manual] {pcrime} com 2023-2024 (Atlas/IPEA) — complete os demais anos.")
+        print(f"[manual] {pcrime} com 2016-2024 (Atlas/IPEA) — complete os novos anos a cada edição.")
     crime = le_manual("manual_crime.csv")
     if crime:
         salva([{"ano": int(r["ano"]), "homicidios": int(r["homicidios"])} for r in crime],
               "conj_crime.csv", "conj_crime.json")
     else:
         print("AVISO: manual_crime.csv vazio — secao criminalidade fica oculta no front.")
+    # UFs: matriz extraída do Atlas 2026 Tab. 2.2 (ver scripts/coleta_crime_uf.py
+    # --documenta a extração; aqui só republicamos o manual).
+    puf = MANUAL / "manual_crime_uf.csv"
+    if puf.exists():
+        cuf = le_manual("manual_crime_uf.csv")
+        rows_uf = []
+        for r in cuf:
+            try:
+                row = {"uf": str(r["uf"]), "sigla": str(r["sigla"]).upper(),
+                       "ano": int(r["ano"]), "homicidios": int(r["homicidios"])}
+                if r.get("taxa") not in (None, ""):
+                    row["taxa"] = float(str(r["taxa"]).replace(",", "."))
+                rows_uf.append(row)
+            except (ValueError, TypeError, KeyError):
+                continue
+        if rows_uf:
+            salva(rows_uf, "conj_crime_uf.csv", "conj_crime_uf.json")
+    else:
+        print("AVISO: manual_crime_uf.csv ausente — painel por UF oculto.")
 
     print("=== 6/6 resumo ===")
     print("Conjuntura atualizada. O front exibe so series existentes.")

@@ -1,7 +1,11 @@
 {
   "slug": "rs",
-  "status": "em-coleta",
-  "fonte": "SICONFI/RREO",
+  "status": "disponivel",
+  "fonte": "SICONFI/RREO Anexo 1",
+  "periodicidade": "bimestral (mes = 1o mes do bimestre)",
+  "resultado": "orcamentario (receita realizada - despesa paga)",
+  "populacao_ref": 11088065,
+  "atualizado_em": "2026-10-06",
   "anos": [
     2016,
     2017,

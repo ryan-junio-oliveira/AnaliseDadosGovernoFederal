@@ -4,7 +4,7 @@ export default function Privacidade() {
   return (
     <section id="privacidade" className="scroll-mt-24">
       <SectionHead
-        index="10"
+        index="09"
         eyebrow="LGPD e cookies"
         title="Privacidade e anúncios"
       />

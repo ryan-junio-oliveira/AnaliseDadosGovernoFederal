@@ -1,0 +1,244 @@
+uf,sigla,ano,homicidios,taxa
+Acre,AC,2016,363,44.4
+Acre,AC,2017,516,62.5
+Acre,AC,2018,409,49.1
+Acre,AC,2019,325,38.8
+Acre,AC,2020,304,36.0
+Acre,AC,2021,205,24.2
+Acre,AC,2022,238,27.9
+Acre,AC,2023,217,25.4
+Acre,AC,2024,174,20.2
+Alagoas,AL,2016,1820,57.2
+Alagoas,AL,2017,1813,56.9
+Alagoas,AL,2018,1441,45.1
+Alagoas,AL,2019,1115,34.8
+Alagoas,AL,2020,1292,40.3
+Alagoas,AL,2021,1070,33.3
+Alagoas,AL,2022,1136,35.4
+Alagoas,AL,2023,1194,37.2
+Alagoas,AL,2024,1152,35.9
+Amapá,AP,2016,381,50.9
+Amapá,AP,2017,383,50.5
+Amapá,AP,2018,426,55.7
+Amapá,AP,2019,361,46.8
+Amapá,AP,2020,387,49.8
+Amapá,AP,2021,462,59.0
+Amapá,AP,2022,358,45.5
+Amapá,AP,2023,516,65.3
+Amapá,AP,2024,363,45.7
+Amazonas,AM,2016,1452,38.6
+Amazonas,AM,2017,1674,43.9
+Amazonas,AM,2018,1542,39.9
+Amazonas,AM,2019,1592,40.6
+Amazonas,AM,2020,1326,33.5
+Amazonas,AM,2021,1816,45.4
+Amazonas,AM,2022,1771,43.9
+Amazonas,AM,2023,1555,38.1
+Amazonas,AM,2024,1326,32.2
+Bahia,BA,2016,7171,49.4
+Bahia,BA,2017,7487,51.4
+Bahia,BA,2018,6787,46.4
+Bahia,BA,2019,6118,41.7
+Bahia,BA,2020,7076,48.0
+Bahia,BA,2021,7206,48.8
+Bahia,BA,2022,6776,45.8
+Bahia,BA,2023,6616,44.7
+Bahia,BA,2024,6061,40.9
+Ceará,CE,2016,3642,41.1
+Ceará,CE,2017,5433,61.0
+Ceará,CE,2018,4900,54.7
+Ceará,CE,2019,2417,26.8
+Ceará,CE,2020,3992,44.0
+Ceará,CE,2021,3471,38.1
+Ceará,CE,2022,3030,33.1
+Ceará,CE,2023,2992,32.6
+Ceará,CE,2024,3163,34.3
+Distrito Federal,DF,2016,760,26.9
+Distrito Federal,DF,2017,610,21.4
+Distrito Federal,DF,2018,530,18.4
+Distrito Federal,DF,2019,480,16.6
+Distrito Federal,DF,2020,453,15.5
+Distrito Federal,DF,2021,401,13.6
+Distrito Federal,DF,2022,357,12.1
+Distrito Federal,DF,2023,347,11.7
+Distrito Federal,DF,2024,308,10.3
+Espírito Santo,ES,2016,1270,32.8
+Espírito Santo,ES,2017,1521,39.0
+Espírito Santo,ES,2018,1165,29.6
+Espírito Santo,ES,2019,1043,26.3
+Espírito Santo,ES,2020,1229,30.8
+Espírito Santo,ES,2021,1253,31.1
+Espírito Santo,ES,2022,1147,28.4
+Espírito Santo,ES,2023,1161,28.5
+Espírito Santo,ES,2024,1064,26.0
+Goiás,GO,2016,3036,45.2
+Goiás,GO,2017,2901,42.6
+Goiás,GO,2018,2675,38.8
+Goiás,GO,2019,2253,32.3
+Goiás,GO,2020,2177,30.8
+Goiás,GO,2021,1812,25.4
+Goiás,GO,2022,1687,23.4
+Goiás,GO,2023,1583,21.8
+Goiás,GO,2024,1354,18.4
+Maranhão,MA,2016,2408,35.3
+Maranhão,MA,2017,2180,31.8
+Maranhão,MA,2018,1982,28.8
+Maranhão,MA,2019,1704,24.7
+Maranhão,MA,2020,2103,30.4
+Maranhão,MA,2021,1999,28.8
+Maranhão,MA,2022,1942,27.9
+Maranhão,MA,2023,2008,28.9
+Maranhão,MA,2024,2167,31.1
+Mato Grosso,MT,2016,1180,35.4
+Mato Grosso,MT,2017,1102,32.5
+Mato Grosso,MT,2018,989,28.7
+Mato Grosso,MT,2019,895,25.5
+Mato Grosso,MT,2020,987,27.7
+Mato Grosso,MT,2021,888,24.5
+Mato Grosso,MT,2022,1077,29.3
+Mato Grosso,MT,2023,1105,29.6
+Mato Grosso,MT,2024,1102,29.1
+Mato Grosso do Sul,MS,2016,671,25.6
+Mato Grosso do Sul,MS,2017,659,24.9
+Mato Grosso do Sul,MS,2018,572,21.4
+Mato Grosso do Sul,MS,2019,491,18.1
+Mato Grosso do Sul,MS,2020,491,17.9
+Mato Grosso do Sul,MS,2021,551,20.0
+Mato Grosso do Sul,MS,2022,550,19.8
+Mato Grosso do Sul,MS,2023,584,20.8
+Mato Grosso do Sul,MS,2024,519,18.3
+Minas Gerais,MG,2016,4622,22.5
+Minas Gerais,MG,2017,4299,20.8
+Minas Gerais,MG,2018,3372,16.2
+Minas Gerais,MG,2019,2893,13.8
+Minas Gerais,MG,2020,2743,13.0
+Minas Gerais,MG,2021,2577,12.2
+Minas Gerais,MG,2022,2699,12.8
+Minas Gerais,MG,2023,2795,13.2
+Minas Gerais,MG,2024,2731,12.8
+Pará,PA,2016,4223,51.7
+Pará,PA,2017,4575,55.6
+Pará,PA,2018,4528,54.6
+Pará,PA,2019,3405,40.7
+Pará,PA,2020,2809,33.4
+Pará,PA,2021,2847,33.6
+Pará,PA,2022,2901,34.1
+Pará,PA,2023,2542,29.7
+Pará,PA,2024,2364,27.4
+Paraíba,PB,2016,1355,34.4
+Paraíba,PB,2017,1341,33.9
+Paraíba,PB,2018,1244,31.2
+Paraíba,PB,2019,953,23.7
+Paraíba,PB,2020,1141,28.2
+Paraíba,PB,2021,1144,28.1
+Paraíba,PB,2022,1105,27.1
+Paraíba,PB,2023,1079,26.3
+Paraíba,PB,2024,1058,25.7
+Paraná,PR,2016,3080,27.5
+Paraná,PR,2017,2759,24.5
+Paraná,PR,2018,2443,21.5
+Paraná,PR,2019,2095,18.3
+Paraná,PR,2020,2281,19.8
+Paraná,PR,2021,2348,20.2
+Paraná,PR,2022,2600,22.3
+Paraná,PR,2023,2214,18.9
+Paraná,PR,2024,2194,18.6
+Pernambuco,PE,2016,4447,48.3
+Pernambuco,PE,2017,5419,58.6
+Pernambuco,PE,2018,4190,45.1
+Pernambuco,PE,2019,3474,37.2
+Pernambuco,PE,2020,3786,40.4
+Pernambuco,PE,2021,3439,36.5
+Pernambuco,PE,2022,3409,36.1
+Pernambuco,PE,2023,3697,39.1
+Pernambuco,PE,2024,3534,37.3
+Piauí,PI,2016,701,21.4
+Piauí,PI,2017,626,19.1
+Piauí,PI,2018,619,18.7
+Piauí,PI,2019,569,17.1
+Piauí,PI,2020,674,20.2
+Piauí,PI,2021,766,22.9
+Piauí,PI,2022,794,23.7
+Piauí,PI,2023,725,21.5
+Piauí,PI,2024,697,20.6
+Rio de Janeiro,RJ,2016,6053,35.5
+Rio de Janeiro,RJ,2017,6416,37.5
+Rio de Janeiro,RJ,2018,6455,37.6
+Rio de Janeiro,RJ,2019,3552,20.7
+Rio de Janeiro,RJ,2020,4831,28.1
+Rio de Janeiro,RJ,2021,4693,27.3
+Rio de Janeiro,RJ,2022,3762,21.9
+Rio de Janeiro,RJ,2023,4292,24.9
+Rio de Janeiro,RJ,2024,3520,20.4
+Rio Grande do Norte,RN,2016,1854,55.5
+Rio Grande do Norte,RN,2017,2203,65.6
+Rio Grande do Norte,RN,2018,1825,54.1
+Rio Grande do Norte,RN,2019,1346,39.7
+Rio Grande do Norte,RN,2020,1406,41.3
+Rio Grande do Norte,RN,2021,1179,34.5
+Rio Grande do Norte,RN,2022,1167,34.0
+Rio Grande do Norte,RN,2023,955,27.8
+Rio Grande do Norte,RN,2024,809,23.5
+Rio Grande do Sul,RS,2016,3225,29.1
+Rio Grande do Sul,RS,2017,3316,29.8
+Rio Grande do Sul,RS,2018,2699,24.2
+Rio Grande do Sul,RS,2019,2184,19.5
+Rio Grande do Sul,RS,2020,2094,18.7
+Rio Grande do Sul,RS,2021,1889,16.8
+Rio Grande do Sul,RS,2022,1964,17.5
+Rio Grande do Sul,RS,2023,1981,17.7
+Rio Grande do Sul,RS,2024,1701,15.2
+Rondônia,RO,2016,703,42.1
+Rondônia,RO,2017,554,33.0
+Rondônia,RO,2018,476,28.2
+Rondônia,RO,2019,447,26.3
+Rondônia,RO,2020,456,26.7
+Rondônia,RO,2021,536,31.2
+Rondônia,RO,2022,601,34.9
+Rondônia,RO,2023,552,32.0
+Rondônia,RO,2024,525,30.3
+Roraima,RR,2016,204,42.2
+Roraima,RR,2017,248,49.9
+Roraima,RR,2018,414,80.1
+Roraima,RR,2019,234,43.1
+Roraima,RR,2020,237,42.1
+Roraima,RR,2021,258,44.9
+Roraima,RR,2022,231,39.2
+Roraima,RR,2023,219,36.0
+Roraima,RR,2024,174,27.8
+Santa Catarina,SC,2016,984,14.1
+Santa Catarina,SC,2017,1066,15.0
+Santa Catarina,SC,2018,843,11.6
+Santa Catarina,SC,2019,767,10.4
+Santa Catarina,SC,2020,732,9.7
+Santa Catarina,SC,2021,712,9.3
+Santa Catarina,SC,2022,671,8.6
+Santa Catarina,SC,2023,658,8.3
+Santa Catarina,SC,2024,654,8.1
+São Paulo,SP,2016,4870,10.9
+São Paulo,SP,2017,4631,10.3
+São Paulo,SP,2018,3727,8.3
+São Paulo,SP,2019,3361,7.4
+São Paulo,SP,2020,3396,7.5
+São Paulo,SP,2021,3094,6.8
+São Paulo,SP,2022,3212,7.0
+São Paulo,SP,2023,3043,6.6
+São Paulo,SP,2024,3041,6.6
+Sergipe,SE,2016,1465,66.7
+Sergipe,SE,2017,1313,59.3
+Sergipe,SE,2018,1133,50.9
+Sergipe,SE,2019,973,43.4
+Sergipe,SE,2020,981,43.5
+Sergipe,SE,2021,790,34.9
+Sergipe,SE,2022,770,33.9
+Sergipe,SE,2023,698,30.6
+Sergipe,SE,2024,526,23.0
+Tocantins,TO,2016,577,39.2
+Tocantins,TO,2017,557,37.5
+Tocantins,TO,2018,570,38.1
+Tocantins,TO,2019,456,30.2
+Tocantins,TO,2020,484,31.8
+Tocantins,TO,2021,441,28.8
+Tocantins,TO,2022,454,29.5
+Tocantins,TO,2023,419,27.0
+Tocantins,TO,2024,309,19.8

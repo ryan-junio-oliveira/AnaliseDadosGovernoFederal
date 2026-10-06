@@ -1,24 +1,32 @@
 import { SectionHead, useMediaQuery } from "../components/ui.jsx";
 import { Bar, themed } from "../lib/charts.jsx";
-import { anoDe, brl } from "../lib/data.js";
+import { anoDe, brl, escalaParaValores } from "../lib/data.js";
+import { paraReais, tickMoeda } from "../lib/moeda.js";
 import { useTheme } from "../lib/theme.jsx";
 import { useMemo } from "react";
 
-export default function Poderes({ podm, anos }) {
+export default function Poderes({ podm, anos, defl }) {
   const { theme } = useTheme();
   const isMobile = useMediaQuery("(max-width: 640px)");
-  const pf = useMemo(() => podm.filter((r) => anos.has(anoDe(r.mes))).sort((a, b) => a.mes.localeCompare(b.mes)), [podm, anos]);
+  const f = defl?.f || (() => 1);
+  const pf = useMemo(() => podm.filter((r) => anos.has(anoDe(r.mes))).sort((a, b) => a.mes.localeCompare(b.mes)).map((r) => {
+    const k = f(r.mes) || 1;
+    return { ...r, legjud_mpudpu_custeio_capital: r.legjud_mpudpu_custeio_capital * k, despesa_total: r.despesa_total * k };
+  }), [podm, anos, f, defl]);
 
   const pa = useMemo(() => {
     const pam = {};
     pf.forEach((r) => {
       const y = anoDe(r.mes);
     pam[y] = pam[y] || { ano: y, valor: 0, despesa: 0 };
-      pam[y].valor += r.legjud_mpudpu_custeio_capital;
-      pam[y].despesa += r.despesa_total;
+      pam[y].valor += paraReais(r.legjud_mpudpu_custeio_capital);
+      pam[y].despesa += paraReais(r.despesa_total);
     });
     return Object.values(pam).sort((a, b) => a.ano - b.ano);
   }, [pf]);
+
+  const escMensal = useMemo(() => escalaParaValores(pf.map((r) => r.legjud_mpudpu_custeio_capital)), [pf]);
+  const escAnual = useMemo(() => escalaParaValores(pa.map((a) => a.valor)), [pa]);
 
   return (
     <section id="poderes" className="scroll-mt-24">
@@ -38,16 +46,16 @@ export default function Poderes({ podm, anos }) {
       <div className="flex flex-col gap-4 mt-4">
         <div className="panel p-5">
           <h3 className="font-display font-semibold mb-1">
-            Evolução mensal <span className="text-xs font-body font-normal tx-faint">barras em R$ bi + participação na despesa total</span>
+            Evolução mensal <span className="text-xs font-body font-normal tx-faint">barras {escMensal.rotulo} + participação na despesa total</span>
           </h3>
           <div style={{ height: isMobile ? 300 : 360 }} className="mt-2">
             <Bar
-              key={`pod-${theme}-${isMobile ? "m" : "d"}`}
+              key={`pod-${theme}-${isMobile ? "m" : "d"}-${escMensal.unidade}-${defl ? "real" : "nom"}`}
               type="bar"
               data={{
                 labels: pf.map((r) => r.mes.slice(0, 7)),
                 datasets: [
-                  { type: "bar", label: "Custeio + capital", data: pf.map((r) => r.legjud_mpudpu_custeio_capital / 1e9), unit: "R$ bi", backgroundColor: "#D9A821", hoverBackgroundColor: "#F5D67B", borderRadius: 4 },
+                  { type: "bar", label: "Custeio + capital", data: pf.map((r) => paraReais(r.legjud_mpudpu_custeio_capital) / escMensal.divisor), unit: escMensal.unidade, backgroundColor: "#D9A821", hoverBackgroundColor: "#F5D67B", borderRadius: 4 },
                   { type: "line", label: "% da despesa total", data: pf.map((r) => +r.participacao.toFixed(2)), unit: "%", borderColor: "#0E7CB5", borderWidth: 2, tension: 0.3, pointRadius: 0, yAxisID: "y1" },
                 ],
               }}
@@ -57,7 +65,7 @@ export default function Poderes({ podm, anos }) {
                 interaction: { mode: "index", intersect: false },
                 scales: {
                   x: { ticks: { maxTicksLimit: isMobile ? 8 : 14, maxRotation: isMobile ? 45 : 0 } },
-                  y: { title: { display: true, text: "R$ bi" } },
+                  y: { title: { display: true, text: escMensal.unidade }, ticks: { callback: tickMoeda } },
                   y1: { position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "%" } },
                 },
               })}
@@ -66,20 +74,20 @@ export default function Poderes({ podm, anos }) {
         </div>
         <div className="panel p-5">
           <h3 className="font-display font-semibold mb-1">
-            Totais anuais <span className="text-xs font-body font-normal tx-faint">custeio + capital</span>
+            Totais anuais <span className="text-xs font-body font-normal tx-faint">custeio + capital · {escAnual.rotulo}{defl ? ` · ${defl.rotulo}` : ""}</span>
           </h3>
           <div style={{ height: isMobile ? 280 : 360 }} className="mt-2">
             <Bar
-              key={`podan-${theme}`}
+              key={`podan-${theme}-${escAnual.unidade}-${defl ? "real" : "nom"}`}
               data={{
                 labels: pa.map((a) => a.ano),
-                datasets: [{ data: pa.map((a) => a.valor / 1e9), unit: "R$ bi", backgroundColor: "#D9A821", hoverBackgroundColor: "#F5D67B", borderRadius: 6 }],
+                datasets: [{ data: pa.map((a) => a.valor / escAnual.divisor), unit: escAnual.unidade, backgroundColor: "#D9A821", hoverBackgroundColor: "#F5D67B", borderRadius: 6 }],
               }}
               options={themed(theme, {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
-                scales: { y: { title: { display: true, text: "R$ bi" } } },
+                scales: { y: { title: { display: true, text: escAnual.unidade }, ticks: { callback: tickMoeda } } },
               })}
             />
           </div>

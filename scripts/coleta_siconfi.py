@@ -85,6 +85,7 @@ def coleta_uf(slug: str, anos: list[int], pausa: float = PAUSA_PADRAO,
     slug = slug.lower()
     ibge = IBGE[slug]
     linhas: list[dict] = []
+    itens: list[dict] = []
     pulados = 0
     for ano in anos:
         for bimestre in range(1, 7):
@@ -104,11 +105,127 @@ def coleta_uf(slug: str, anos: list[int], pausa: float = PAUSA_PADRAO,
                     cod = str(item.get("cod_ibge", "") or item.get("id_ente", ""))
                     if cod.startswith(ibge):
                         linhas.append({"ano": ano, "bimestre": bimestre, **item})
+                        itens.append({"ano": ano, "bimestre": bimestre, **item})
             except Exception as e:
                 pulados += 1
                 print(f"[{rotulo}] aviso (periodo pulado): {e}", file=sys.stderr, flush=True)
             time.sleep(pausa)
-    return {"slug": slug, "linhas_rreo": len(linhas), "anos": anos, "pulados": pulados}
+    return {"slug": slug, "linhas_rreo": len(linhas), "anos": anos,
+            "pulados": pulados, "itens": itens}
+
+
+# ---- Mapeamento Anexo 1 -> schema do front (mesmo da Uniao) ----
+COL_REC_BIM = "No Bimestre (b)"
+COL_PAGA_ATE = "DESPESAS PAGAS ATÉ O BIMESTRE (j)"
+CONTA_REC_TOTAL = "ReceitasExcetoIntraOrcamentarias"
+CONTA_DES_TOTAL = "DespesasExcetoIntraOrcamentarias"
+
+# (cod_conta EXATO, rotulo no painel) — as contas do Anexo 1 sao
+# hierarquicas (ex.: OutrasDespesasCorrentes CONTEM DemaisDespesasCorrentes);
+# so os agregados de nivel 1 entram aqui; o resto cai em "Demais".
+MAP_REC = [
+    ("ReceitaTributaria", "Impostos e Taxas"),
+    ("TransferenciasCorrentes", "Transferências Correntes"),
+    ("ReceitaDeContribuicoes", "Contribuições"),
+    ("ReceitaPatrimonial", "Patrimonial"),
+    ("ReceitaDeServicos", "Serviços"),
+    ("ReceitasDeCapital", "Receitas de Capital"),
+]
+MAP_DES = [
+    ("PessoalEEncargosSociais", "Pessoal e Encargos"),
+    ("JurosEEncargosDaDivida", "Juros e Encargos da Dívida"),
+    ("OutrasDespesasCorrentes", "Outras Despesas Correntes"),
+    ("Investimentos", "Investimentos"),
+    ("InversoesFinanceiras", "Inversões Financeiras"),
+    ("AmortizacaoDaDivida", "Amortização da Dívida"),
+]
+
+
+def montar_uf(slug: str, itens: list[dict], anos: list[int]) -> Path:
+    """Converte itens RREO em {mensal,anual,receitas,despesas}.json (+vazios)."""
+    from datetime import date as _date
+    por_bim: dict[tuple[int, int], dict] = {}
+    for it in itens:
+        por_bim.setdefault((it["ano"], it["bimestre"]), {})[
+            (it.get("cod_conta", ""), it.get("coluna", ""))] = it.get("valor") or 0
+    mensal, receitas, despesas = [], [], []
+    pop = None
+    for ano in sorted(anos):
+        for bim in range(1, 7):
+            vals = por_bim.get((ano, bim))
+            if not vals:
+                continue
+            rec_bim = vals.get((CONTA_REC_TOTAL, COL_REC_BIM), 0) or 0
+            # despesa paga NO bimestre = diferenca do acumulado
+            ant = por_bim.get((ano, bim - 1)) if bim > 1 else None
+            pago_ate = vals.get((CONTA_DES_TOTAL, COL_PAGA_ATE), 0) or 0
+            pago_ant = (ant or {}).get((CONTA_DES_TOTAL, COL_PAGA_ATE), 0) or 0
+            des_bim = max(0.0, pago_ate - pago_ant)
+            mes = f"{ano}-{2 * bim - 1:02d}-01"  # 1o mes do bimestre
+            mensal.append({"mes": mes, "bimestre": bim, "receita": round(rec_bim, 2),
+                           "receita_total": round(rec_bim, 2),
+                           "despesa": round(des_bim, 2),
+                           "resultado_primario": round(rec_bim - des_bim, 2)})
+            rec_det = {c: v for (c, col), v in vals.items() if col == COL_REC_BIM}
+            tot_partes_r = 0.0
+            for cod, rot in MAP_REC:
+                v = rec_det.get(cod, 0) or 0
+                tot_partes_r += v
+                if v:
+                    receitas.append({"mes": mes, "bimestre": bim,
+                                     "tipo": rot, "valor": round(v, 2)})
+            dem = rec_bim - tot_partes_r
+            # residual (positivo ou negativo: ajustes/republicações) p/ reconciliar
+            if abs(dem) > 1000:
+                receitas.append({"mes": mes, "bimestre": bim, "tipo": "Demais receitas",
+                                 "valor": round(dem, 2)})
+            pag_det = {c: v for (c, col), v in vals.items() if col == COL_PAGA_ATE}
+            pag_ant = {c: v for (c, col), v in (ant or {}).items()
+                       if col == COL_PAGA_ATE} if ant else {}
+            tot_partes = 0.0
+            for cod, rot in MAP_DES:
+                v = (pag_det.get(cod, 0) or 0) - (pag_ant.get(cod, 0) or 0)
+                vv = max(0.0, v)
+                tot_partes += vv
+                if vv:
+                    despesas.append({"mes": mes, "bimestre": bim,
+                                     "funcao": rot, "valor": round(vv, 2)})
+            dem_d = des_bim - tot_partes
+            if abs(dem_d) > 1000:
+                despesas.append({"mes": mes, "bimestre": bim, "funcao": "Demais despesas",
+                                 "valor": round(dem_d, 2)})
+    for it in itens:
+        if it.get("populacao"):
+            pop = it["populacao"]
+    mensal.sort(key=lambda r: r["mes"])
+    por_ano: dict[int, dict] = {}
+    for r in mensal:
+        a = int(r["mes"][:4])
+        d = por_ano.setdefault(a, {"ano": a, "receita": 0.0, "receita_total": 0.0,
+                                   "despesa": 0.0, "resultado_primario": 0.0})
+        for k in ("receita", "receita_total", "despesa", "resultado_primario"):
+            d[k] += r[k]
+    anual = [{**v, **{k: round(v[k], 2) for k in
+                      ("receita", "receita_total", "despesa", "resultado_primario")}}
+             for v in sorted(por_ano.values(), key=lambda r: r["ano"])]
+    dest = OUT / slug
+    dest.mkdir(parents=True, exist_ok=True)
+    for nome, dados in (("mensal", mensal), ("anual", anual),
+                        ("receitas", receitas), ("despesas", despesas)):
+        (dest / f"{nome}.json").write_text(
+            json.dumps(dados, ensure_ascii=False), encoding="utf-8")
+    for nome in ("poderes", "orgaos_todos", "emendas"):
+        (dest / f"{nome}.json").write_text("[]", encoding="utf-8")
+    (dest / "meta.json").write_text(json.dumps(
+        {"slug": slug, "status": "disponivel", "fonte": "SICONFI/RREO Anexo 1",
+         "periodicidade": "bimestral (mes = 1o mes do bimestre)",
+         "resultado": "orcamentario (receita realizada - despesa paga)",
+         "populacao_ref": pop, "atualizado_em": _date.today().isoformat(),
+         "anos": sorted({int(r["mes"][:4]) for r in mensal})},
+        ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"[{slug}] mensal={len(mensal)} receitas={len(receitas)} "
+          f"despesas={len(despesas)} pop={pop}", flush=True)
+    return dest
 
 
 def exporta_placeholder(slug: str, anos: list[int]) -> Path:
@@ -146,11 +263,16 @@ if __name__ == "__main__":
                   + (f" ({res['pulados']} periodos pulados apos retry)" if res["pulados"] else ""))
             total_linhas += res["linhas_rreo"]
             total_pulados += res["pulados"]
+            if res["linhas_rreo"]:
+                print(f"   -> {montar_uf(slug, res['itens'], anos)}", flush=True)
+            else:
+                print(f"   -> {exporta_placeholder(slug, anos)}", flush=True)
         except Exception as e:
             print(f"   erro na API, gerando placeholder: {e}")
-        print(f"   -> {exporta_placeholder(slug, anos)}", flush=True)
+            print(f"   -> {exporta_placeholder(slug, anos)}", flush=True)
     print(f"Total: {total_linhas} linhas RREO, {total_pulados} periodos pulados.")
     if total_linhas == 0:
         print("NENHUMA linha coletada: a API do Tesouro bloqueou o ritmo (429). "
               "Aguarde ~15 min e rode de novo, ou aumente --delay (ex. --delay 3).")
-    print("OK. Próximo passo: mapear Anexo 1 -> mensal.json (ver docs/EXPANSAO-ESTADOS.md).")
+    print("OK. UFs com linhas RREO ganham mensal/anual/receitas/despesas (bimestral);")
+    print("sem linhas, placeholder 'em-coleta'. Habilite a UF em src/lib/entes.js.")
