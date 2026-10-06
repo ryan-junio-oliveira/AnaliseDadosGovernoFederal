@@ -159,9 +159,18 @@ pause
 goto MENU
 
 :INICIA_DEV
+netstat -ano | findstr /C:":8000 " >nul 2>nul
+if not errorlevel 1 goto PORTA_OCUPADA
 echo Abrindo http://localhost:8000 ...
 start "" http://localhost:8000
 call npm run dev --prefix "%ROOT%"
+pause
+goto MENU
+
+:PORTA_OCUPADA
+echo [AVISO] A porta 8000 ja esta em uso. Feche o outro terminal do painel
+echo        ou finalize o processo, e tente de novo.
+echo        Dica: netstat -ano ^| findstr :8000  mostra o PID; taskkill /PID N /F o encerra.
 pause
 goto MENU
 

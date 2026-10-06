@@ -25,7 +25,16 @@ pause
 exit /b 1
 
 :INICIA
+netstat -ano | findstr /C:":8000 " >nul 2>nul
+if not errorlevel 1 goto PORTA_OCUPADA
 echo Abrindo http://localhost:8000 ...
 start "" http://localhost:8000
 call npm run dev
 pause
+exit /b 0
+
+:PORTA_OCUPADA
+echo [AVISO] A porta 8000 ja esta em uso. Feche o outro terminal do painel
+echo        ou finalize o processo, e tente de novo.
+pause
+exit /b 1
