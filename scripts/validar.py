@@ -30,6 +30,7 @@ CONJ = {
     "conj_dividas": ("mes",),
     "conj_desemprego": ("mes",),
     "conj_empresas": ("mes",),
+    "conj_empresas_anual": ("ano",),
     "conj_ipos": ("ano",),
     "conj_crime": ("ano",),
 }

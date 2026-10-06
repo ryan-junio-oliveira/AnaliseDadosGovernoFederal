@@ -51,7 +51,7 @@ export function intervaloDados(mensal) {
 
 const FILES = ["mensal", "anual", "receitas", "despesas", "poderes", "orgaos_todos"];
 // Conjuntura e opcional: ETL separado; em falha, o painel segue sem ela.
-const FILES_OPT = ["conj_mensal", "conj_dividas", "conj_desemprego", "conj_empresas", "conj_ipos", "conj_crime"];
+const FILES_OPT = ["conj_mensal", "conj_dividas", "conj_desemprego", "conj_empresas", "conj_empresas_anual", "conj_ipos", "conj_crime"];
 
 // Cache em memória por ente, evita refetch ao trocar de filtro/tema.
 const cache = new Map();

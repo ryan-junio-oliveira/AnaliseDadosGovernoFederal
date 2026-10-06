@@ -419,6 +419,29 @@ if __name__ == "__main__":
             out.append({"mes": mes, "rj_req": r.get("rj_req"), "fal_req": r.get("fal_req"),
                         "abertas": me.get("abertas"), "fechadas": me.get("fechadas")})
         salva(out, "conj_empresas.csv", "conj_empresas.json")
+        # anual: soma dos meses + âncoras pré-2024 (releases Serasa verificados)
+        pave = MANUAL / "manual_empresas_anual.csv"
+        if not pave.exists():
+            pave.write_text("ano,rj_ano,fal_ano\n2022,833,866\n2023,1405,983\n", encoding="utf-8")
+            print("[manual] criei manual_empresas_anual.csv com 2022-2023 (releases Serasa).")
+        import pandas as pd
+        anc = pd.read_csv(pave).to_dict("records") if pave.stat().st_size > 10 else []
+        por_ano: dict[int, list] = {}
+        for r in out:
+            a = int(str(r["mes"])[:4])
+            p = por_ano.setdefault(a, [0, 0])
+            p[0] += r.get("rj_req") or 0
+            p[1] += r.get("fal_req") or 0
+        anos_cobertos = set(por_ano)
+        for r in anc:
+            try:
+                a = int(r["ano"])
+                if a not in anos_cobertos:
+                    por_ano[a] = [int(r["rj_ano"]), int(r["fal_ano"])]
+            except (ValueError, TypeError):
+                continue
+        salva([{"ano": a, "rj_ano": q, "fal_ano": f} for a, (q, f) in sorted(por_ano.items())],
+              "conj_empresas_anual.csv", "conj_empresas_anual.json")
     else:
         print("AVISO: sem serie de empresas (Serasa fora e sem manual).")
 

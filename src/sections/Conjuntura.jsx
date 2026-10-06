@@ -58,6 +58,7 @@ export default function Conjuntura({ data, anos }) {
   const emp = useMemo(() => (data.conj_empresas || []).filter((r) => anos.has(anoDe(r.mes))), [data, anos]);
   const crime = useMemo(() => (data.conj_crime || []).filter((r) => anos.has(r.ano)), [data, anos]);
   const ipos = useMemo(() => (data.conj_ipos || []).filter((r) => anos.has(r.ano)), [data, anos]);
+  const empAnual = useMemo(() => (data.conj_empresas_anual || []).filter((r) => anos.has(r.ano)), [data, anos]);
 
   const temMensal = cm.length > 0;
   const temEmpresas = emp.length > 0;
@@ -78,8 +79,11 @@ export default function Conjuntura({ data, anos }) {
   const selic = ultimo(cm, "selic");
   const dolar = ultimo(cm, "dolar");
   const des = temDes ? tri[tri.length - 1] : null;
-  const rj12 = temEmpresas ? emp.slice(-12).reduce((t, r) => t + (r.rj_req || 0), 0) : null;
-  const fal12 = temEmpresas ? emp.slice(-12).reduce((t, r) => t + (r.fal_req || 0), 0) : null;
+  // RJ/falências: soma TUDO se o filtro tem ≤12 meses, senão os últimos 12 — rótulo diz qual.
+  const rjBase = temEmpresas && emp.length > 12 ? emp.slice(-12) : emp;
+  const rj12 = temEmpresas ? rjBase.reduce((t, r) => t + (r.rj_req || 0), 0) : null;
+  const fal12 = temEmpresas ? rjBase.reduce((t, r) => t + (r.fal_req || 0), 0) : null;
+  const rjRotulo = !temEmpresas ? "" : emp.length > 12 ? "últimos 12m do filtro" : "no período filtrado";
   const hom = temCrime ? crime[crime.length - 1] : null;
   const ibov = ultimo(cm, "ibov");
   const totIpo = temIpo ? ipos.reduce((t, r) => t + (r.ipos || 0), 0) : null;
@@ -120,14 +124,19 @@ export default function Conjuntura({ data, anos }) {
             sparkVals={tri.map((r) => r.desemprego)} sparkColor="#0E7CB5" />
         )}
         {temEmpresas && (
-          <Kpi icon="fa-scale-unbalanced" label="RJ + falências (12m)" valor={`${num(rj12)} · ${num(fal12)}`}
-            cor="var(--text)" sub="pedidos RJ · falências requeridas · Serasa" />
+          <Kpi icon="fa-scale-unbalanced" label="RJ + falências" valor={`${num(rj12)} · ${num(fal12)}`}
+            cor="var(--text)" sub={`pedidos RJ · falências requeridas · ${rjRotulo} · Serasa`} />
         )}
         {hom && (
           <Kpi icon="fa-shield-halved" label="Homicídios no ano" valor={num(hom.homicidios)} cor="var(--text)"
             sub={`${hom.ano} · Atlas da Violência IPEA/FBSP`} />
         )}
       </div>
+
+      <p className="text-xs tx-faint mt-3 leading-relaxed">
+        Taxas e cotações (IPCA, Selic, dólar, Ibovespa, desemprego) mostram a <b>posição no fim do período filtrado</b> — não se somam.
+        Totais (IPOs, RJ, falências, homicídios) <b>somam o período filtrado</b>.
+      </p>
 
       {temMensal && (
         <div className="flex flex-col gap-4 mt-4">
@@ -306,6 +315,29 @@ export default function Conjuntura({ data, anos }) {
               ? " Abertas × fechadas vindas do Mapa de Empresas aparecem no gráfico abaixo."
               : " Aberturas × fechamentos (Mapa de Empresas) entram aqui quando data/manual/manual_empresas.csv for preenchido."}
           </p>
+        </div>
+      )}
+
+      {empAnual.length > 1 && (
+        <div className="panel p-5 sm:p-6 mt-4">
+          <h3 className="font-display font-semibold mb-1">Pedidos por ano <span className="text-xs font-body font-normal tx-faint">RJ + falências · Serasa (2022–2023: totais dos releases)</span></h3>
+          <div style={{ height: 280 }} className="mt-2">
+            <Bar
+              key={`empan-${theme}`}
+              data={{
+                labels: empAnual.map((r) => r.ano),
+                datasets: [
+                  { label: "RJ requeridas", data: empAnual.map((r) => r.rj_ano), unit: "pedidos", backgroundColor: "#7C5CBF", borderRadius: 5 },
+                  { label: "Falências requeridas", data: empAnual.map((r) => r.fal_ano), unit: "pedidos", backgroundColor: "#F43F5E", borderRadius: 5 },
+                ],
+              }}
+              options={themed(theme, {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: "index", intersect: false },
+                scales: { y: { title: { display: true, text: "pedidos" } } },
+              })}
+            />
+          </div>
         </div>
       )}
 
