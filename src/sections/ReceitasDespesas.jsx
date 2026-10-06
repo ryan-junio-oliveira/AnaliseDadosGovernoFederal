@@ -44,6 +44,7 @@ export default function ReceitasDespesas({ R, D }) {
                   datasets: [
                     {
                       data: R.map((i) => +(i.valor / 1e9).toFixed(1)),
+                      unit: "R$ bi",
                       backgroundColor: ["#10B981", "#0E7CB5", "#F59E0B", "#0E9F8A", "#F43F5E", "#D96C1E", "#64748B", "#65A30D", "#DB2777", "#4F46E5", "#B45309", "#9333EA", "#334155"],
                       borderColor: theme === "light" ? "#ffffff" : "#0F1D33",
                       borderWidth: 3,
@@ -82,7 +83,7 @@ export default function ReceitasDespesas({ R, D }) {
               key={`des-${theme}`}
               data={{
                 labels: D.map((i) => i.nome),
-                datasets: [{ data: D.map((i) => +(i.valor / 1e9).toFixed(1)), backgroundColor: "#F43F5E", hoverBackgroundColor: "#FB7185", borderRadius: 6 }],
+                datasets: [{ data: D.map((i) => +(i.valor / 1e9).toFixed(1)), unit: "R$ bi", backgroundColor: "#F43F5E", hoverBackgroundColor: "#FB7185", borderRadius: 6 }],
               }}
               options={themed(theme, {
                 responsive: true,

@@ -1,6 +1,6 @@
 import { SectionHead } from "../components/ui.jsx";
 import { Bar, Line, themed } from "../lib/charts.jsx";
-import { anoDe } from "../lib/data.js";
+import { anoDe, brl } from "../lib/data.js";
 import { useTheme } from "../lib/theme.jsx";
 import { useMemo } from "react";
 
@@ -57,13 +57,15 @@ export default function Conjuntura({ data, anos }) {
   const tri = useMemo(() => (data.conj_desemprego || []).filter((r) => anos.has(anoDe(r.mes))), [data, anos]);
   const emp = useMemo(() => (data.conj_empresas || []).filter((r) => anos.has(anoDe(r.mes))), [data, anos]);
   const crime = useMemo(() => (data.conj_crime || []).filter((r) => anos.has(r.ano)), [data, anos]);
+  const ipos = useMemo(() => (data.conj_ipos || []).filter((r) => anos.has(r.ano)), [data, anos]);
 
   const temMensal = cm.length > 0;
   const temEmpresas = emp.length > 0;
   const temCrime = crime.length > 0;
   const temDes = tri.length > 0;
+  const temIpo = ipos.length > 0;
   const temAbertas = temEmpresas && emp.some((r) => r.abertas != null);
-  if (!temMensal && !temEmpresas && !temCrime && !temDes && !dv.length) {
+  if (!temMensal && !temEmpresas && !temCrime && !temDes && !temIpo && !dv.length) {
     return (
       <section id="conjuntura" className="scroll-mt-24">
         <SectionHead index="02" eyebrow="Preços, juros, emprego e empresas" title="Conjuntura" />
@@ -79,6 +81,9 @@ export default function Conjuntura({ data, anos }) {
   const rj12 = temEmpresas ? emp.slice(-12).reduce((t, r) => t + (r.rj_req || 0), 0) : null;
   const fal12 = temEmpresas ? emp.slice(-12).reduce((t, r) => t + (r.fal_req || 0), 0) : null;
   const hom = temCrime ? crime[crime.length - 1] : null;
+  const ibov = ultimo(cm, "ibov");
+  const totIpo = temIpo ? ipos.reduce((t, r) => t + (r.ipos || 0), 0) : null;
+  const volIpo = temIpo ? ipos.reduce((t, r) => t + (r.volume || 0), 0) : null;
   const corIpca = ipca12 && ipca12.valor > 4.5 ? "var(--brick)" : "var(--green)";
 
   return (
@@ -99,6 +104,15 @@ export default function Conjuntura({ data, anos }) {
           <Kpi icon="fa-dollar-sign" label="Dólar comercial" valor={moeda(dolar.valor)} cor="var(--text)"
             sub={`ref. ${dolar.ref.slice(0, 7)} · BCB SGS 1`}
             sparkVals={cm.map((r) => r.dolar)} sparkColor="#0E7CB5" />
+        )}
+        {ibov && (
+          <Kpi icon="fa-arrow-trend-up" label="Ibovespa" valor={`${Math.round(ibov.valor).toLocaleString("pt-BR")} pts`} cor="var(--text)"
+            sub={`ref. ${ibov.ref.slice(0, 7)} · fechamento mensal ajustado`}
+            sparkVals={cm.map((r) => r.ibov)} sparkColor="#10B981" />
+        )}
+        {temIpo && (
+          <Kpi icon="fa-handshake" label="IPOs no período" valor={`${totIpo} · ${brl(volIpo)}`} cor="var(--text)"
+            sub="ofertas iniciais de ações · CVM" />
         )}
         {des && (
           <Kpi icon="fa-briefcase" label="Desocupação (PNADc)" valor={pct(des.desemprego, 1)} cor="var(--text)"
@@ -125,14 +139,17 @@ export default function Conjuntura({ data, anos }) {
                 data={{
                   labels: cm.map((r) => r.mes.slice(0, 7)),
                   datasets: [
-                    { type: "bar", label: "Mensal (% a.m.)", data: cm.map((r) => r.ipca_m), backgroundColor: "#10B98188", borderRadius: 3 },
-                    { type: "line", label: "12 meses (%)", data: cm.map((r) => r.ipca_12m), borderColor: "#F59E0B", borderWidth: 2.5, tension: 0.3, pointRadius: 0, spanGaps: true },
+                    { type: "bar", label: "Mensal", data: cm.map((r) => r.ipca_m), unit: "% a.m.", backgroundColor: "#10B98188", borderRadius: 3 },
+                    { type: "line", label: "12 meses", data: cm.map((r) => r.ipca_12m), unit: "% em 12m", borderColor: "#F59E0B", borderWidth: 2.5, tension: 0.3, pointRadius: 0, spanGaps: true },
                   ],
                 }}
                 options={themed(theme, {
                   responsive: true, maintainAspectRatio: false,
                   interaction: { mode: "index", intersect: false },
-                  scales: { x: { ticks: { maxTicksLimit: 10, maxRotation: 45 } } },
+                  scales: {
+                    x: { ticks: { maxTicksLimit: 10, maxRotation: 45 } },
+                    y: { title: { display: true, text: "%" } },
+                  },
                 })}
               />
             </div>
@@ -145,8 +162,8 @@ export default function Conjuntura({ data, anos }) {
                 data={{
                   labels: cm.map((r) => r.mes.slice(0, 7)),
                   datasets: [
-                    { type: "line", label: "Selic (% a.a.)", data: cm.map((r) => r.selic), borderColor: "#7C5CBF", borderWidth: 2.5, tension: 0.3, pointRadius: 0, spanGaps: true },
-                    { type: "line", label: "Dólar (R$)", data: cm.map((r) => r.dolar), borderColor: "#0E7CB5", borderWidth: 2, tension: 0.3, pointRadius: 0, spanGaps: true, yAxisID: "y1" },
+                    { type: "line", label: "Selic", data: cm.map((r) => r.selic), unit: "% a.a.", borderColor: "#7C5CBF", borderWidth: 2.5, tension: 0.3, pointRadius: 0, spanGaps: true },
+                    { type: "line", label: "Dólar", data: cm.map((r) => r.dolar), unit: "R$", borderColor: "#0E7CB5", borderWidth: 2, tension: 0.3, pointRadius: 0, spanGaps: true, yAxisID: "y1" },
                   ],
                 }}
                 options={themed(theme, {
@@ -154,7 +171,8 @@ export default function Conjuntura({ data, anos }) {
                   interaction: { mode: "index", intersect: false },
                   scales: {
                     x: { ticks: { maxTicksLimit: 10, maxRotation: 45 } },
-                    y1: { position: "right", grid: { drawOnChartArea: false } },
+                    y: { title: { display: true, text: "% a.a." } },
+                    y1: { position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "R$" } },
                   },
                 })}
               />
@@ -169,14 +187,17 @@ export default function Conjuntura({ data, anos }) {
                   data={{
                     labels: dv.map((r) => r.mes.slice(0, 7)),
                     datasets: [
-                      { type: "line", label: "Bruta (DBGG)", data: dv.map((r) => r.dbgg), borderColor: "#F43F5E", borderWidth: 2.5, tension: 0.3, pointRadius: 0, spanGaps: true },
-                      { type: "line", label: "Líquida (DLSP)", data: dv.map((r) => r.dlsp), borderColor: "#0E7CB5", borderWidth: 2, tension: 0.3, pointRadius: 0, spanGaps: true },
+                      { type: "line", label: "Bruta (DBGG)", data: dv.map((r) => r.dbgg), unit: "% do PIB", borderColor: "#F43F5E", borderWidth: 2.5, tension: 0.3, pointRadius: 0, spanGaps: true },
+                      { type: "line", label: "Líquida (DLSP)", data: dv.map((r) => r.dlsp), unit: "% do PIB", borderColor: "#0E7CB5", borderWidth: 2, tension: 0.3, pointRadius: 0, spanGaps: true },
                     ],
                   }}
                   options={themed(theme, {
                     responsive: true, maintainAspectRatio: false,
                     interaction: { mode: "index", intersect: false },
-                    scales: { x: { ticks: { maxTicksLimit: 10, maxRotation: 45 } } },
+                    scales: {
+                      x: { ticks: { maxTicksLimit: 10, maxRotation: 45 } },
+                      y: { title: { display: true, text: "% do PIB" } },
+                    },
                   })}
                 />
               </div>
@@ -190,17 +211,69 @@ export default function Conjuntura({ data, anos }) {
                   key={`des-${theme}`}
                   data={{
                     labels: tri.map((r) => r.tri),
-                    datasets: [{ data: tri.map((r) => r.desemprego), backgroundColor: "#0E7CB5", borderRadius: 5 }],
+                    datasets: [{ data: tri.map((r) => r.desemprego), unit: "%", backgroundColor: "#0E7CB5", borderRadius: 5 }],
                   }}
                   options={themed(theme, {
                     responsive: true, maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
-                    scales: { x: { ticks: { maxTicksLimit: 12, maxRotation: 45 } } },
+                    scales: {
+                      x: { ticks: { maxTicksLimit: 12, maxRotation: 45 } },
+                      y: { title: { display: true, text: "%" } },
+                    },
                   })}
                 />
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {temIpo && (
+        <div className="grid lg:grid-cols-2 gap-4 mt-4">
+          <div className="panel p-5">
+            <h3 className="font-display font-semibold mb-1">Ibovespa <span className="text-xs font-body font-normal tx-faint">pontos · fechamento mensal</span></h3>
+            <div style={{ height: 300 }} className="mt-2">
+              <Line
+                key={`ibov-${theme}`}
+                data={{
+                  labels: cm.map((r) => r.mes.slice(0, 7)),
+                  datasets: [{ label: "Ibovespa", data: cm.map((r) => r.ibov), unit: "pontos", borderColor: "#10B981", borderWidth: 2.5, tension: 0.3, pointRadius: 0, spanGaps: true, fill: true, backgroundColor: "#10B98122" }],
+                }}
+                options={themed(theme, {
+                  responsive: true, maintainAspectRatio: false,
+                  interaction: { mode: "index", intersect: false },
+                  plugins: { legend: { display: false } },
+                  scales: {
+                    x: { ticks: { maxTicksLimit: 10, maxRotation: 45 } },
+                    y: { title: { display: true, text: "pontos" } },
+                  },
+                })}
+              />
+            </div>
+          </div>
+          <div className="panel p-5">
+            <h3 className="font-display font-semibold mb-1">IPOs por ano <span className="text-xs font-body font-normal tx-faint">qtd + volume · CVM</span></h3>
+            <div style={{ height: 300 }} className="mt-2">
+              <Bar
+                key={`ipo-${theme}`}
+                data={{
+                  labels: ipos.map((r) => r.ano),
+                  datasets: [
+                    { type: "bar", label: "IPOs", data: ipos.map((r) => r.ipos), unit: "ofertas", backgroundColor: "#0E7CB5", borderRadius: 5 },
+                    { type: "line", label: "Volume", data: ipos.map((r) => +(r.volume / 1e9).toFixed(2)), unit: "R$ bi", borderColor: "#F59E0B", borderWidth: 2.5, tension: 0.3, pointRadius: 3, yAxisID: "y1" },
+                  ],
+                }}
+                options={themed(theme, {
+                  responsive: true, maintainAspectRatio: false,
+                  interaction: { mode: "index", intersect: false },
+                  scales: {
+                    y: { title: { display: true, text: "IPOs" } },
+                    y1: { position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "R$ bi" } },
+                  },
+                })}
+              />
+            </div>
+          </div>
         </div>
       )}
 
@@ -213,14 +286,17 @@ export default function Conjuntura({ data, anos }) {
               data={{
                 labels: emp.map((r) => r.mes.slice(0, 7)),
                 datasets: [
-                  { label: "RJ requeridas", data: emp.map((r) => r.rj_req), backgroundColor: "#7C5CBF", borderRadius: 3 },
-                  { label: "Falências requeridas", data: emp.map((r) => r.fal_req), backgroundColor: "#F43F5E", borderRadius: 3 },
+                  { label: "RJ requeridas", data: emp.map((r) => r.rj_req), unit: "pedidos", backgroundColor: "#7C5CBF", borderRadius: 3 },
+                  { label: "Falências requeridas", data: emp.map((r) => r.fal_req), unit: "pedidos", backgroundColor: "#F43F5E", borderRadius: 3 },
                 ],
               }}
               options={themed(theme, {
                 responsive: true, maintainAspectRatio: false,
                 interaction: { mode: "index", intersect: false },
-                scales: { x: { ticks: { maxTicksLimit: 12, maxRotation: 45 } } },
+                scales: {
+                  x: { ticks: { maxTicksLimit: 12, maxRotation: 45 } },
+                  y: { title: { display: true, text: "pedidos" } },
+                },
               })}
             />
           </div>
@@ -242,14 +318,17 @@ export default function Conjuntura({ data, anos }) {
               data={{
                 labels: emp.filter((r) => r.abertas != null).map((r) => r.mes.slice(0, 7)),
                 datasets: [
-                  { label: "Abertas", data: emp.filter((r) => r.abertas != null).map((r) => r.abertas), backgroundColor: "#10B981", borderRadius: 3 },
-                  { label: "Fechadas", data: emp.filter((r) => r.abertas != null).map((r) => r.fechadas), backgroundColor: "#F43F5E", borderRadius: 3 },
+                  { label: "Abertas", data: emp.filter((r) => r.abertas != null).map((r) => r.abertas), unit: "empresas", backgroundColor: "#10B981", borderRadius: 3 },
+                  { label: "Fechadas", data: emp.filter((r) => r.abertas != null).map((r) => r.fechadas), unit: "empresas", backgroundColor: "#F43F5E", borderRadius: 3 },
                 ],
               }}
               options={themed(theme, {
                 responsive: true, maintainAspectRatio: false,
                 interaction: { mode: "index", intersect: false },
-                scales: { x: { ticks: { maxTicksLimit: 12, maxRotation: 45 } } },
+                scales: {
+                  x: { ticks: { maxTicksLimit: 12, maxRotation: 45 } },
+                  y: { title: { display: true, text: "empresas" } },
+                },
               })}
             />
           </div>
@@ -264,11 +343,12 @@ export default function Conjuntura({ data, anos }) {
               key={`cri-${theme}`}
               data={{
                 labels: crime.map((r) => r.ano),
-                datasets: [{ data: crime.map((r) => r.homicidios), backgroundColor: "#64748B", borderRadius: 6 }],
+                datasets: [{ data: crime.map((r) => r.homicidios), unit: "homicídios", backgroundColor: "#64748B", borderRadius: 6 }],
               }}
               options={themed(theme, {
                 responsive: true, maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
+                scales: { y: { title: { display: true, text: "homicídios" } } },
               })}
             />
           </div>

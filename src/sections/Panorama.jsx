@@ -28,12 +28,13 @@ export default function Panorama({ data, anos, modo, setModo }) {
             data={{
               labels: view.map((r) => r.mes.slice(0, 7)),
               datasets: [
-                { type: "line", label: "Arrecadação", data: view.map((r) => r.receita / 1e9), borderColor: "#10B981", borderWidth: 2.5, tension: 0.3, pointRadius: 0 },
-                { type: "line", label: "Gastos", data: view.map((r) => r.despesa / 1e9), borderColor: "#F43F5E", borderWidth: 2.5, tension: 0.3, pointRadius: 0 },
+                { type: "line", label: "Arrecadação", data: view.map((r) => r.receita / 1e9), unit: "R$ bi", borderColor: "#10B981", borderWidth: 2.5, tension: 0.3, pointRadius: 0 },
+                { type: "line", label: "Gastos", data: view.map((r) => r.despesa / 1e9), unit: "R$ bi", borderColor: "#F43F5E", borderWidth: 2.5, tension: 0.3, pointRadius: 0 },
                 {
                   type: "bar",
                   label: "Resultado",
                   data: view.map((r) => r.resultado_primario / 1e9),
+                  unit: "R$ bi",
                   backgroundColor: view.map((r) => (r.resultado_primario >= 0 ? "#10B98155" : "#F59E0B55")),
                   yAxisID: "y1",
                 },
@@ -46,7 +47,7 @@ export default function Panorama({ data, anos, modo, setModo }) {
               scales: {
                 x: { ticks: { maxTicksLimit: isMobile ? 8 : 14, maxRotation: isMobile ? 45 : 0 } },
                 y: { title: { display: true, text: "R$ bi" } },
-                y1: { position: "right", grid: { drawOnChartArea: false } },
+                y1: { position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "R$ bi" } },
               },
             })}
           />
@@ -64,8 +65,8 @@ export default function Panorama({ data, anos, modo, setModo }) {
               data={{
                 labels: an.map((a) => a.ano),
                 datasets: [
-                  { label: "Receita", data: an.map((a) => a.receita / 1e12), backgroundColor: "#10B981", borderRadius: 6 },
-                  { label: "Despesa", data: an.map((a) => a.despesa / 1e12), backgroundColor: "#F43F5E", borderRadius: 6 },
+                  { label: "Receita", data: an.map((a) => a.receita / 1e12), unit: "R$ tri", backgroundColor: "#10B981", borderRadius: 6 },
+                  { label: "Despesa", data: an.map((a) => a.despesa / 1e12), unit: "R$ tri", backgroundColor: "#F43F5E", borderRadius: 6 },
                 ],
               }}
               options={themed(theme, {
@@ -92,6 +93,7 @@ export default function Panorama({ data, anos, modo, setModo }) {
                 datasets: [
                   {
                     data: an.map((a) => a.resultado_primario / 1e9),
+                    unit: "R$ bi",
                     borderRadius: 6,
                     backgroundColor: an.map((a) => (a.resultado_primario >= 0 ? "#10B981" : "#F59E0B")),
                   },

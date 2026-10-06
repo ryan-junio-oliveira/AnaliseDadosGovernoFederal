@@ -47,8 +47,8 @@ export default function Poderes({ podm, anos }) {
               data={{
                 labels: pf.map((r) => r.mes.slice(0, 7)),
                 datasets: [
-                  { type: "bar", label: "Custeio + capital (R$ bi)", data: pf.map((r) => r.legjud_mpudpu_custeio_capital / 1e9), backgroundColor: "#D9A821", hoverBackgroundColor: "#F5D67B", borderRadius: 4 },
-                  { type: "line", label: "% da despesa total", data: pf.map((r) => +r.participacao.toFixed(2)), borderColor: "#0E7CB5", borderWidth: 2, tension: 0.3, pointRadius: 0, yAxisID: "y1" },
+                  { type: "bar", label: "Custeio + capital", data: pf.map((r) => r.legjud_mpudpu_custeio_capital / 1e9), unit: "R$ bi", backgroundColor: "#D9A821", hoverBackgroundColor: "#F5D67B", borderRadius: 4 },
+                  { type: "line", label: "% da despesa total", data: pf.map((r) => +r.participacao.toFixed(2)), unit: "%", borderColor: "#0E7CB5", borderWidth: 2, tension: 0.3, pointRadius: 0, yAxisID: "y1" },
                 ],
               }}
               options={themed(theme, {
@@ -73,7 +73,7 @@ export default function Poderes({ podm, anos }) {
               key={`podan-${theme}`}
               data={{
                 labels: pa.map((a) => a.ano),
-                datasets: [{ data: pa.map((a) => +(a.valor / 1e9).toFixed(1)), backgroundColor: "#D9A821", hoverBackgroundColor: "#F5D67B", borderRadius: 6 }],
+                datasets: [{ data: pa.map((a) => +(a.valor / 1e9).toFixed(1)), unit: "R$ bi", backgroundColor: "#D9A821", hoverBackgroundColor: "#F5D67B", borderRadius: 6 }],
               }}
               options={themed(theme, {
                 responsive: true,

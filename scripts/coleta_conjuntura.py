@@ -111,6 +111,117 @@ def ipca_12m(mensal: dict) -> dict:
     return out
 
 
+# ---------------- Ibovespa (Yahoo, SGS 7 descontinuada) ----------------
+def coleta_ibov(desde: str = "2014-01") -> dict:
+    """Fechamento mensal ajustado do ^BVSP. Retorna {YYYY-MM: pontos}."""
+    from datetime import datetime, timezone
+    try:
+        raw = get_json("https://query1.finance.yahoo.com/v8/finance/chart/%5EBVSP?interval=1mo&range=max")
+        res = (raw.get("chart", {}) or {}).get("result", [{}])[0]
+        ts = res.get("timestamp", [])
+        adj = ((res.get("indicators", {}) or {}).get("adjclose", [{}])[0] or {}).get("adjclose", [])
+        out = {}
+        for t, v in zip(ts, adj):
+            if v is None:
+                continue
+            d = datetime.fromtimestamp(t, tz=timezone.utc).date()
+            k = f"{d.year}-{d.month:02d}"
+            if k >= desde:
+                out[k] = round(float(v), 0)
+        print(f"[yahoo:^BVSP] {len(out)} meses")
+        return out
+    except Exception as e:
+        print(f"[yahoo:^BVSP] aviso: {e}")
+        return {}
+
+
+# ---------------- CVM: IPOs (ofertas iniciais de acoes) ----------------
+CVM_ZIP = "https://dados.cvm.gov.br/dados/OFERTA/DISTRIB/DADOS/oferta_distribuicao.zip"
+
+
+def _fold(s) -> str:
+    import unicodedata
+    return unicodedata.normalize("NFKD", str(s or "")).encode("ascii", "ignore").decode().upper()
+
+
+def _num(s) -> float:
+    s = (s or "").strip().strip("'").strip()
+    if not s:
+        return 0.0
+    if "," in s:  # formato BR: 1.234,56
+        s = s.replace(".", "").replace(",", ".")
+    try:
+        return float(s)
+    except ValueError:
+        return 0.0
+
+
+def coleta_ipos() -> list:
+    """Ofertas iniciais de acoes por ano (qtd de emissores + volume R$).
+    Arquivo antigo (ate 2022) + Resolucao 160 (2023+). Dedup por emissor+data
+    (uma oferta tem varias linhas de tranche). Anos sem IPO entram zerados."""
+    import io
+    import zipfile
+    from datetime import date
+    try:
+        req = urllib.request.Request(CVM_ZIP, headers=UA)
+        z = zipfile.ZipFile(io.BytesIO(urllib.request.urlopen(req, timeout=300).read()))
+    except Exception as e:
+        print(f"[cvm] download falhou: {e}")
+        return []
+    emissores: dict[tuple, float] = {}
+    try:
+        import csv
+        # regime antigo
+        with z.open("oferta_distribuicao.csv") as f:
+            for r in csv.DictReader(io.TextIOWrapper(f, encoding="latin-1"), delimiter=";"):
+                try:
+                    if "ACOES" not in _fold(r.get("Tipo_Ativo")):
+                        continue
+                    if not _fold(r.get("Oferta_Inicial")).startswith("S"):
+                        continue
+                    data_ref = (r.get("Data_Registro_Oferta") or r.get("Data_Encerramento_Oferta") or "")[:10]
+                    ano = int(data_ref[:4])
+                    if ano < ANO_INI:
+                        continue
+                    key = ((r.get("CNPJ_Emissor") or r.get("Nome_Emissor") or "?").strip(), data_ref)
+                    emissores[key] = emissores.get(key, 0.0) + _num(r.get("Valor_Total"))
+                except (ValueError, TypeError):
+                    continue
+        # Resolucao 160 (2023+)
+        with z.open("oferta_resolucao_160.csv") as f:
+            for r in csv.DictReader(io.TextIOWrapper(f, encoding="latin-1"), delimiter=";"):
+                try:
+                    if "ACOES" not in _fold(r.get("Valor_Mobiliario")):
+                        continue
+                    if not _fold(r.get("Oferta_inicial")).startswith("S"):
+                        continue
+                    if "ENCERRADA" not in _fold(r.get("Status_Requerimento")):
+                        continue
+                    data_ref = (r.get("Data_Registro") or "")[:10]
+                    ano = int(data_ref[:4])
+                    if ano < ANO_INI:
+                        continue
+                    key = ((r.get("CNPJ_Emissor") or r.get("Nome_Emissor") or "?").strip(), data_ref)
+                    emissores[key] = emissores.get(key, 0.0) + _num(r.get("Valor_Total_Registrado"))
+                except (ValueError, TypeError):
+                    continue
+    except Exception as e:
+        print(f"[cvm] parse falhou: {e}")
+        return []
+    agg: dict[int, list] = {}
+    for (emissor, data_ref), vol in emissores.items():
+        a = agg.setdefault(int(data_ref[:4]), [set(), 0.0])
+        a[0].add(emissor)
+        a[1] += vol
+    fim = date.today().year
+    out = [{"ano": a, "ipos": len(agg.get(a, [set()])[0]),
+            "volume": round(agg.get(a, [set(), 0.0])[1], 2)}
+           for a in range(ANO_INI, fim + 1)]
+    print(f"[cvm] {sum(r['ipos'] for r in out)} IPOs em {len(out)} anos")
+    return out
+
+
 # ---------------- SIDRA desemprego (tentativa com fallback) ----------------
 def coleta_desemprego() -> list:
     """PNADc trimestral BR (tab. 4095). Retorna [{mes, desemprego}] ou []."""
@@ -262,14 +373,17 @@ if __name__ == "__main__":
         m_dolar = mensaliza(bcb.get("dolar", []), "ultimo")
         m_selic = mensaliza(bcb.get("selic", []), "ultimo")
         m_ibc = mensaliza(bcb.get("ibc", []), "ultimo")
-        meses = sorted(set(m_ipca) | set(m_dolar) | set(m_selic) | set(m_ibc))
+        print("=== 1b/5 Ibovespa (Yahoo) ===")
+        m_ibov = coleta_ibov()
+        meses = sorted(set(m_ipca) | set(m_dolar) | set(m_selic) | set(m_ibc) | set(m_ibov))
         meses = [k for k in meses if k >= f"{ANO_INI}-01"]
         salva([{"mes": f"{k}-01",
                 "ipca_m": round(m_ipca[k], 2) if k in m_ipca else None,
                 "ipca_12m": a12.get(k),
                 "dolar": round(m_dolar[k], 4) if k in m_dolar else None,
                 "selic": round(m_selic[k], 2) if k in m_selic else None,
-                "ibc": round(m_ibc[k], 2) if k in m_ibc else None}
+                "ibc": round(m_ibc[k], 2) if k in m_ibc else None,
+                "ibov": m_ibov.get(k)}
                for k in meses], "conj_mensal.csv", "conj_mensal.json")
     if bcb.get("dbgg") or bcb.get("dlsp"):
         m_g = mensaliza(bcb.get("dbgg", []), "ultimo")
@@ -308,7 +422,12 @@ if __name__ == "__main__":
     else:
         print("AVISO: sem serie de empresas (Serasa fora e sem manual).")
 
-    print("=== 4/5 criminalidade (manual: Atlas da Violencia) ===")
+    print("=== 4/5 IPOs na bolsa (CVM) ===")
+    ipos = coleta_ipos()
+    if ipos:
+        salva(ipos, "conj_ipos.csv", "conj_ipos.json")
+
+    print("=== 5/5 criminalidade (manual: Atlas da Violencia) ===")
     garante_template("manual_crime.csv", "ano,homicidios",
                      "preencha 1x/ano com o Atlas da Violencia IPEA/FBSP (total BR). Ex.: 2024,42590")
     crime = le_manual("manual_crime.csv")
@@ -318,5 +437,5 @@ if __name__ == "__main__":
     else:
         print("AVISO: manual_crime.csv vazio — secao criminalidade fica oculta no front.")
 
-    print("=== 5/5 resumo ===")
+    print("=== 6/6 resumo ===")
     print("Conjuntura atualizada. O front exibe so series existentes.")

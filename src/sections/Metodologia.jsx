@@ -37,7 +37,7 @@ const FONTES = [
     linkLabel: "dadosabertos.bcb.gov.br",
     badges: ["IPCA", "Selic", "Dólar", "IBC-Br", "Dívidas % PIB"],
     itens: [
-      "Séries mensais via API pública (SGS 433, 1, 432, 24364, 13762 e 4513), sem token. IPCA em 12 meses calculado aqui a partir da variação mensal.",
+      "Séries mensais via API pública (SGS 433, 1, 432, 24364, 13762 e 4513), sem token. IPCA em 12 meses calculado aqui a partir da variação mensal. Ibovespa via Yahoo Finance (fechamento mensal ajustado ^BVSP; SGS 7 descontinuada).",
       "Alimenta: conj_mensal.json e conj_dividas.json (seção Conjuntura).",
     ],
   },
@@ -52,6 +52,18 @@ const FONTES = [
       "Planilha mensal com URL descoberta automaticamente na página de indicadores. Série de processos (não CNPJs) para comparabilidade histórica.",
       "Quebra metodológica em 2025 (processos × CNPJs) e defasagem de ~3 meses nos últimos pontos — sinalizado na seção Conjuntura.",
       "Alimenta: conj_empresas.json (aberturas × fechamentos vêm do Mapa de Empresas via data/manual/).",
+    ],
+  },
+  {
+    icon: "fa-handshake",
+    color: "#0E7CB5",
+    nome: "CVM — Ofertas públicas de distribuição (dados abertos)",
+    link: "https://dados.cvm.gov.br/dataset/oferta-distrib",
+    linkLabel: "dados.cvm.gov.br",
+    badges: ["IPOs", "Volume R$"],
+    itens: [
+      "ZIP mensal com ofertas registradas (regime antigo + Resolução 160). IPO = oferta inicial de ações com registro encerrado; deduplicado por emissor (uma oferta tem várias linhas).",
+      "Alimenta: conj_ipos.json — quantidade e volume por ano na seção Conjuntura.",
     ],
   },
   {

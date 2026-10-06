@@ -35,6 +35,19 @@ ChartJS.defaults.plugins.tooltip.padding = 12;
 ChartJS.defaults.plugins.tooltip.boxPadding = 5;
 ChartJS.defaults.plugins.tooltip.titleFont = { weight: "600", size: 12 };
 ChartJS.defaults.plugins.tooltip.bodyFont = { size: 12 };
+// Tooltip padrao: numero em pt-BR + unidade do dataset (ex. dataset.unit = "R$ bi").
+// Acaba com o "6.800,01 de quê?": todo valor vem com sua unidade.
+const _fmtBR = (v) => (typeof v === "number" ? v.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : String(v ?? "—"));
+ChartJS.defaults.plugins.tooltip.callbacks = {
+  ...(ChartJS.defaults.plugins.tooltip.callbacks || {}),
+  label: (ctx) => {
+    const nome = ctx.dataset.label ? `${ctx.dataset.label}: ` : "";
+    const u = ctx.dataset.unit ? ` ${ctx.dataset.unit}` : "";
+    const p = ctx.parsed;
+    const v = typeof p === "number" ? p : p?.y ?? p?.x ?? ctx.raw;
+    return `${nome}${_fmtBR(v)}${u}`;
+  },
+};
 
 export { Bar, Doughnut, Line };
 
