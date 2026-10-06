@@ -73,7 +73,7 @@ export default function Poderes({ podm, anos }) {
               key={`podan-${theme}`}
               data={{
                 labels: pa.map((a) => a.ano),
-                datasets: [{ data: pa.map((a) => +(a.valor / 1e9).toFixed(1)), unit: "R$ bi", backgroundColor: "#D9A821", hoverBackgroundColor: "#F5D67B", borderRadius: 6 }],
+                datasets: [{ data: pa.map((a) => a.valor / 1e9), unit: "R$ bi", backgroundColor: "#D9A821", hoverBackgroundColor: "#F5D67B", borderRadius: 6 }],
               }}
               options={themed(theme, {
                 responsive: true,

@@ -58,14 +58,14 @@ export default function Orgaos({ todos, anos, poderes, setPoderes }) {
             key={`org-${theme}-${isMobile ? "m" : "d"}`}
             data={{
               labels: TOP.map((i) => corta(i.nome)),
-              datasets: [{ data: TOP.map((i) => +(i.valor / 1e9).toFixed(1)), unit: "R$ bi", backgroundColor: TOP.map((i) => PODER_COR[i.poder] || "#0E7CB5"), borderRadius: 6 }],
+              datasets: [{ data: TOP.map((i) => i.valor / 1e9), unit: "R$ bi", backgroundColor: TOP.map((i) => PODER_COR[i.poder] || "#0E7CB5"), borderRadius: 6 }],
             }}
             options={themed(theme, {
               responsive: true,
               maintainAspectRatio: false,
               indexAxis: "y",
               plugins: { legend: { display: false } },
-              scales: { x: { title: { display: true, text: "R$ bi pagos" } } },
+              scales: { x: { title: { display: true, text: "R$ bi pagos" }, ticks: { callback: (v) => Number(v).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) } } },
             })}
           />
         </div>
