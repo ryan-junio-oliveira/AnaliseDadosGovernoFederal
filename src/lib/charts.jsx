@@ -44,7 +44,12 @@ ChartJS.defaults.plugins.tooltip.callbacks = {
     const nome = ctx.dataset.label ? `${ctx.dataset.label}: ` : "";
     const u = ctx.dataset.unit ? ` ${ctx.dataset.unit}` : "";
     const p = ctx.parsed;
-    const v = typeof p === "number" ? p : p?.y ?? p?.x ?? ctx.raw;
+    // Barras horizontais (indexAxis y): o valor esta em parsed.x;
+    // nas verticais/linhas, em parsed.y. Rosca: parsed ja e numero.
+    let v;
+    if (typeof p === "number") v = p;
+    else if (ctx.chart?.options?.indexAxis === "y") v = p?.x ?? ctx.raw;
+    else v = p?.y ?? ctx.raw;
     return `${nome}${_fmtBR(v)}${u}`;
   },
 };
