@@ -49,7 +49,7 @@ export default function Sobre() {
   return (
     <section id="sobre" className="scroll-mt-24">
       <SectionHead
-        index="08"
+        index="09"
         eyebrow="Quem somos"
         title="Sobre o Observatório"
       />

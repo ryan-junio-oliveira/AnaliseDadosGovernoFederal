@@ -8,6 +8,7 @@ import { useTheme } from "./lib/theme.jsx";
 
 const Panorama = lazy(() => import("./sections/Panorama.jsx"));
 const Conjuntura = lazy(() => import("./sections/Conjuntura.jsx"));
+const Seguranca = lazy(() => import("./sections/Seguranca.jsx"));
 const ReceitasDespesas = lazy(() => import("./sections/ReceitasDespesas.jsx"));
 const Orgaos = lazy(() => import("./sections/Orgaos.jsx"));
 const Poderes = lazy(() => import("./sections/Poderes.jsx"));
@@ -341,6 +342,7 @@ export default function App() {
               <ErrorBoundary><Suspense fallback={<Skeleton />}><Poderes podm={data.poderes} anos={anosSet} /></Suspense></ErrorBoundary>
               <AdSlot name="bottom" />
               <ErrorBoundary><Suspense fallback={<Skeleton />}><Conjuntura data={data} anos={anosSet} /></Suspense></ErrorBoundary>
+              <ErrorBoundary><Suspense fallback={<Skeleton />}><Seguranca data={data} anos={anosSet} /></Suspense></ErrorBoundary>
               <ErrorBoundary><Suspense fallback={<Skeleton />}><Metodologia /></Suspense></ErrorBoundary>
               <ErrorBoundary><Suspense fallback={<Skeleton />}><Sobre /></Suspense></ErrorBoundary>
               <ErrorBoundary><Suspense fallback={<Skeleton />}><Privacidade /></Suspense></ErrorBoundary>

@@ -56,17 +56,15 @@ export default function Conjuntura({ data, anos }) {
   const dv = useMemo(() => (data.conj_dividas || []).filter((r) => anos.has(anoDe(r.mes))), [data, anos]);
   const tri = useMemo(() => (data.conj_desemprego || []).filter((r) => anos.has(anoDe(r.mes))), [data, anos]);
   const emp = useMemo(() => (data.conj_empresas || []).filter((r) => anos.has(anoDe(r.mes))), [data, anos]);
-  const crime = useMemo(() => (data.conj_crime || []).filter((r) => anos.has(r.ano)), [data, anos]);
   const ipos = useMemo(() => (data.conj_ipos || []).filter((r) => anos.has(r.ano)), [data, anos]);
   const empAnual = useMemo(() => (data.conj_empresas_anual || []).filter((r) => anos.has(r.ano)), [data, anos]);
 
   const temMensal = cm.length > 0;
   const temEmpresas = emp.length > 0;
-  const temCrime = crime.length > 0;
   const temDes = tri.length > 0;
   const temIpo = ipos.length > 0;
   const temAbertas = temEmpresas && emp.some((r) => r.abertas != null);
-  if (!temMensal && !temEmpresas && !temCrime && !temDes && !temIpo && !dv.length) {
+  if (!temMensal && !temEmpresas && !temDes && !temIpo && !dv.length) {
     return (
       <section id="conjuntura" className="scroll-mt-24">
         <SectionHead index="06" eyebrow="Preços, juros, emprego e empresas" title="Conjuntura" />
@@ -84,7 +82,6 @@ export default function Conjuntura({ data, anos }) {
   const rj12 = temEmpresas ? rjBase.reduce((t, r) => t + (r.rj_req || 0), 0) : null;
   const fal12 = temEmpresas ? rjBase.reduce((t, r) => t + (r.fal_req || 0), 0) : null;
   const rjRotulo = !temEmpresas ? "" : emp.length > 12 ? "últimos 12m do filtro" : "no período filtrado";
-  const hom = temCrime ? crime[crime.length - 1] : null;
   const ibov = ultimo(cm, "ibov");
   const totIpo = temIpo ? ipos.reduce((t, r) => t + (r.ipos || 0), 0) : null;
   const volIpo = temIpo ? ipos.reduce((t, r) => t + (r.volume || 0), 0) : null;
@@ -92,7 +89,7 @@ export default function Conjuntura({ data, anos }) {
 
   return (
     <section id="conjuntura" className="scroll-mt-24">
-      <SectionHead index="07" eyebrow="Preços, juros, emprego e empresas" title="Conjuntura" />
+      <SectionHead index="06" eyebrow="Preços, juros, emprego e empresas" title="Conjuntura" />
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5">
         {ipca12 && (
           <Kpi icon="fa-tag" label="IPCA em 12 meses" valor={pct(ipca12.valor)} cor={corIpca}
@@ -127,15 +124,11 @@ export default function Conjuntura({ data, anos }) {
           <Kpi icon="fa-scale-unbalanced" label="RJ + falências" valor={`${num(rj12)} · ${num(fal12)}`}
             cor="var(--text)" sub={`pedidos RJ · falências requeridas · ${rjRotulo} · Serasa`} />
         )}
-        {hom && (
-          <Kpi icon="fa-shield-halved" label="Homicídios no ano" valor={num(hom.homicidios)} cor="var(--text)"
-            sub={`${hom.ano} · Atlas da Violência IPEA/FBSP`} />
-        )}
       </div>
 
       <p className="text-xs tx-faint mt-3 leading-relaxed">
         Taxas e cotações (IPCA, Selic, dólar, Ibovespa, desemprego) mostram a <b>posição no fim do período filtrado</b> — não se somam.
-        Totais (IPOs, RJ, falências, homicídios) <b>somam o período filtrado</b>.
+        Totais (IPOs, RJ, falências) <b>somam o período filtrado</b>.
       </p>
 
       {temMensal && (
@@ -367,26 +360,6 @@ export default function Conjuntura({ data, anos }) {
         </div>
       )}
 
-      {temCrime && (
-        <div className="panel p-5 sm:p-6 mt-4">
-          <h3 className="font-display font-semibold mb-1">Homicídios por ano <span className="text-xs font-body font-normal tx-faint">total BR · Atlas da Violência IPEA/FBSP</span></h3>
-          <div style={{ height: 280 }} className="mt-2">
-            <Bar
-              key={`cri-${theme}`}
-              data={{
-                labels: crime.map((r) => r.ano),
-                datasets: [{ data: crime.map((r) => r.homicidios), unit: "homicídios", backgroundColor: "#64748B", borderRadius: 6 }],
-              }}
-              options={themed(theme, {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { y: { title: { display: true, text: "homicídios" } } },
-              })}
-            />
-          </div>
-          <p className="text-xs tx-faint mt-3">Fonte SIM/Ministério da Saúde via Atlas; divulgação anual com ~2 anos de defasagem.</p>
-        </div>
-      )}
     </section>
   );
 }
