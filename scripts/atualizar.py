@@ -18,8 +18,12 @@ subprocess.run([sys.executable, str(SCRIPTS / "processa_rtn.py")], check=True, c
 print("=== 3/5 coletando orgaos SIOP (todos os Poderes) ===")
 subprocess.run([sys.executable, str(SCRIPTS / "coleta_orgaos_todos.py"),
                 *[str(a) for a in ANOS]], check=True, cwd=ROOT)
-print("=== 4/5 exportando JSONs p/ public/data ===")
+print("=== 4/6 exportando JSONs p/ public/data ===")
 subprocess.run([sys.executable, str(SCRIPTS / "export_json.py")], check=True, cwd=ROOT)
-print("=== 5/5 validando JSONs do frontend ===")
+print("=== 5/6 coletando conjuntura (BCB+Serasa; tolerante a falhas) ===")
+r = subprocess.run([sys.executable, str(SCRIPTS / "coleta_conjuntura.py")], cwd=ROOT)
+if r.returncode != 0:
+    print("AVISO: conjuntura falhou; front usa ultima coleta valida.")
+print("=== 6/6 validando JSONs do frontend ===")
 subprocess.run([sys.executable, str(SCRIPTS / "validar.py")], check=True, cwd=ROOT)
 print("OK: dados atualizados. Rode o app (rodar.bat) para ver.")

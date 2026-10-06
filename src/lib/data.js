@@ -50,6 +50,8 @@ export function intervaloDados(mensal) {
 }
 
 const FILES = ["mensal", "anual", "receitas", "despesas", "poderes", "orgaos_todos"];
+// Conjuntura e opcional: ETL separado; em falha, o painel segue sem ela.
+const FILES_OPT = ["conj_mensal", "conj_dividas", "conj_desemprego", "conj_empresas", "conj_crime"];
 
 // Cache em memória por ente, evita refetch ao trocar de filtro/tema.
 const cache = new Map();
@@ -76,7 +78,16 @@ export function useData(ente = ENTE_ATUAL) {
         const got = await Promise.all(
           FILES.map(async (f) => [f, await fetchJson(dataUrl(ente, f), ctrl.signal)])
         );
-        const data = Object.fromEntries(got);
+        const opt = await Promise.all(
+          FILES_OPT.map(async (f) => {
+            try {
+              return [f, await fetchJson(dataUrl(ente, f), ctrl.signal)];
+            } catch {
+              return [f, null]; // serie ausente: secao correspondente se oculta
+            }
+          })
+        );
+        const data = { ...Object.fromEntries(got), ...Object.fromEntries(opt) };
         cache.set(key, data);
         if (alive) setState({ loading: false, error: null, data });
       } catch (e) {

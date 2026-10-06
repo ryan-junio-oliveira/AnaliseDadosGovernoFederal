@@ -7,6 +7,7 @@ import { getEnte } from "./lib/entes.js";
 import { useTheme } from "./lib/theme.jsx";
 
 const Panorama = lazy(() => import("./sections/Panorama.jsx"));
+const Conjuntura = lazy(() => import("./sections/Conjuntura.jsx"));
 const ReceitasDespesas = lazy(() => import("./sections/ReceitasDespesas.jsx"));
 const Orgaos = lazy(() => import("./sections/Orgaos.jsx"));
 const Poderes = lazy(() => import("./sections/Poderes.jsx"));
@@ -333,6 +334,7 @@ export default function App() {
               )}
 
               <ErrorBoundary><Suspense fallback={<Skeleton />}><Panorama data={data} anos={anosSet} modo={modo} setModo={setModo} /></Suspense></ErrorBoundary>
+              <ErrorBoundary><Suspense fallback={<Skeleton />}><Conjuntura data={data} anos={anosSet} /></Suspense></ErrorBoundary>
               <AdSlot name="hero" />
               <ErrorBoundary><Suspense fallback={<Skeleton />}><ReceitasDespesas R={R} D={D} /></Suspense></ErrorBoundary>
               <AdSlot name="mid" />

@@ -23,7 +23,7 @@ export default function Poderes({ podm, anos }) {
   return (
     <section id="poderes" className="scroll-mt-24">
       <SectionHead
-        index="05"
+        index="06"
         eyebrow="Outros Poderes"
         title="Legislativo, Judiciário, MPU e DPU"
       />

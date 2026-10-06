@@ -23,6 +23,20 @@ const FONTES = [
     licenca: "API pública, sem autenticação.",
   },
   {
+    nome: "Banco Central — SGS (IPCA, Selic, dólar, IBC-Br, dívidas % PIB)",
+    link: "https://dadosabertos.bcb.gov.br/",
+    fornece: "Séries mensais de preços, juros, câmbio, atividade e endividamento — base dos KPIs e gráficos da seção Conjuntura.",
+    atualizacao: "Diária/mensal, conforme a série.",
+    licenca: "API pública (ODbL).",
+  },
+  {
+    nome: "Serasa Experian — Falências e Recuperações Judiciais",
+    link: "https://www.serasaexperian.com.br/conteudos/indicadores-economicos/",
+    fornece: "Pedidos mensais de recuperação judicial e falência (série de processos).",
+    atualizacao: "Mensal, com ~3 meses de defasagem.",
+    licenca: "Divulgação pública do indicador.",
+  },
+  {
     nome: "IBGE — estimativas populacionais (previsto)",
     link: "https://www.ibge.gov.br/",
     fornece: "População residente por UF, para indicadores per capita no futuro comparador entre estados.",
@@ -35,7 +49,7 @@ export default function Sobre() {
   return (
     <section id="sobre" className="scroll-mt-24">
       <SectionHead
-        index="07"
+        index="08"
         eyebrow="Quem somos"
         title="Sobre o Observatório"
       />

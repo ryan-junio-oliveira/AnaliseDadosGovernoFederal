@@ -29,6 +29,44 @@ const FONTES = [
       "Alimenta: orgaos_todos.json (seção Órgãos).",
     ],
   },
+  {
+    icon: "fa-chart-line",
+    color: "#10B981",
+    nome: "Banco Central — SGS (Sistema Gerenciador de Séries Temporais)",
+    link: "https://dadosabertos.bcb.gov.br/",
+    linkLabel: "dadosabertos.bcb.gov.br",
+    badges: ["IPCA", "Selic", "Dólar", "IBC-Br", "Dívidas % PIB"],
+    itens: [
+      "Séries mensais via API pública (SGS 433, 1, 432, 24364, 13762 e 4513), sem token. IPCA em 12 meses calculado aqui a partir da variação mensal.",
+      "Alimenta: conj_mensal.json e conj_dividas.json (seção Conjuntura).",
+    ],
+  },
+  {
+    icon: "fa-building",
+    color: "#7C5CBF",
+    nome: "Serasa Experian — Indicador de Falências e Recuperações Judiciais",
+    link: "https://www.serasaexperian.com.br/conteudos/indicadores-economicos/",
+    linkLabel: "serasaexperian.com.br",
+    badges: ["Pedidos RJ", "Falências"],
+    itens: [
+      "Planilha mensal com URL descoberta automaticamente na página de indicadores. Série de processos (não CNPJs) para comparabilidade histórica.",
+      "Quebra metodológica em 2025 (processos × CNPJs) e defasagem de ~3 meses nos últimos pontos — sinalizado na seção Conjuntura.",
+      "Alimenta: conj_empresas.json (aberturas × fechamentos vêm do Mapa de Empresas via data/manual/).",
+    ],
+  },
+  {
+    icon: "fa-briefcase",
+    color: "#0E7CB5",
+    nome: "IBGE — PNAD Contínua trimestral (SIDRA 4095) + manuais",
+    link: "https://sidra.ibge.gov.br/tabela/4095",
+    linkLabel: "sidra.ibge.gov.br",
+    badges: ["Desocupação", "Homicídios", "Empresas"],
+    itens: [
+      "Desocupação trimestral tentada via API SIDRA com fallback (mantém última coleta se a API recusar).",
+      "Homicídios anuais (Atlas da Violência IPEA/FBSP) e abertas × fechadas (Mapa de Empresas) via data/manual/*.csv — 2 min/mês, documentado no script.",
+      "Blocos só aparecem no front quando há dados.",
+    ],
+  },
 ];
 
 const NOTAS = [
@@ -50,7 +88,7 @@ export default function Metodologia() {
   return (
     <section id="metodologia" className="scroll-mt-24">
       <SectionHead
-        index="06"
+        index="07"
         eyebrow="Transparência"
         title="Metodologia e fontes"
       />

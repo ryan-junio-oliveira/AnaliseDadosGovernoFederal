@@ -24,6 +24,27 @@ def carrega(nome):
 mensal = carrega("mensal")
 carrega("anual"); carrega("receitas"); carrega("despesas"); carrega("poderes"); carrega("orgaos_todos")
 
+# conjuntura: opcional (so existe apos coleta_conjuntura.py); se existir, valida schema
+CONJ = {
+    "conj_mensal": ("mes",),
+    "conj_dividas": ("mes",),
+    "conj_desemprego": ("mes",),
+    "conj_empresas": ("mes",),
+    "conj_crime": ("ano",),
+}
+n_conj = 0
+for nome, chaves in CONJ.items():
+    p = DATA / f"{nome}.json"
+    if not p.exists():
+        continue
+    rows = carrega(nome)
+    n_conj += 1
+    for r in rows:
+        for k in chaves:
+            if k not in r:
+                erros.append(f"{nome} sem campo {k}: {r}")
+                break
+
 for r in mensal:
     for k in ("mes", "receita", "despesa", "resultado_primario"):
         if k not in r:
@@ -37,4 +58,4 @@ if erros:
     for e in erros[:20]:
         print(" -", e)
     raise SystemExit(1)
-print(f"OK: {len(mensal)} meses validados, 6 arquivos íntegros.")
+print(f"OK: {len(mensal)} meses validados, 6 arquivos íntegros + {n_conj} de conjuntura.")
