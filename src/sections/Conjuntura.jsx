@@ -130,7 +130,7 @@ export default function Conjuntura({ data, anos }) {
       </div>
 
       {temMensal && (
-        <div className="grid lg:grid-cols-2 gap-4 mt-4">
+        <div className="flex flex-col gap-4 mt-4">
           <div className="panel p-5">
             <h3 className="font-display font-semibold mb-1">IPCA mensal × 12 meses <span className="text-xs font-body font-normal tx-faint">% a.m. + % 12m</span></h3>
             <div style={{ height: 300 }} className="mt-2">
@@ -229,7 +229,7 @@ export default function Conjuntura({ data, anos }) {
       )}
 
       {temIpo && (
-        <div className="grid lg:grid-cols-2 gap-4 mt-4">
+        <div className="flex flex-col gap-4 mt-4">
           <div className="panel p-5">
             <h3 className="font-display font-semibold mb-1">Ibovespa <span className="text-xs font-body font-normal tx-faint">pontos · fechamento mensal</span></h3>
             <div style={{ height: 300 }} className="mt-2">
