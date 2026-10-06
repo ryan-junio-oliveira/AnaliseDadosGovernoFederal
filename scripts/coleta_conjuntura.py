@@ -395,6 +395,26 @@ if __name__ == "__main__":
 
     print("=== 2/5 desemprego PNADc (SIDRA, com fallback) ===")
     des = coleta_desemprego()
+    if not des:
+        # fallback manual: trimestres fixos da PNADc (SIDRA tab. 4095), ex.: 2026-T2,5.4
+        pdes = MANUAL / "manual_desemprego.csv"
+        if not pdes.exists():
+            # âncora verificada (IBGE release 2º tri/2026); complete com os demais tris
+            pdes.write_text("tri,desemprego\n2026-T2,5.4\n", encoding="utf-8")
+            print(f"[manual] criei {pdes} com 2026-T2 (IBGE) — complete os demais trimestres.")
+        man = le_manual("manual_desemprego.csv")
+        conv = {"T1": "-03-31", "T2": "-06-30", "T3": "-09-30", "T4": "-12-31"}
+        for r in man:
+            m = re.match(r"(\d{4})-T([1-4])", str(r.get("tri", "")).strip())
+            try:
+                v = float(str(r.get("desemprego", "")).replace(",", "."))
+            except (ValueError, TypeError):
+                continue
+            if m:
+                des.append({"mes": f"{m.group(1)}{conv['T' + m.group(2)]}", "tri": m.group(0), "desemprego": v})
+        des.sort(key=lambda r: r["mes"])
+        if des:
+            print(f"[manual] desemprego: {len(des)} trimestres ({des[0]['tri']} -> {des[-1]['tri']})")
     if des:
         salva(des, "conj_desemprego.csv", "conj_desemprego.json")
 
@@ -451,8 +471,21 @@ if __name__ == "__main__":
         salva(ipos, "conj_ipos.csv", "conj_ipos.json")
 
     print("=== 5/5 criminalidade (manual: Atlas da Violencia) ===")
-    garante_template("manual_crime.csv", "ano,homicidios",
-                     "preencha 1x/ano com o Atlas da Violencia IPEA/FBSP (total BR). Ex.: 2024,42590")
+    pcrime = MANUAL / "manual_crime.csv"
+    # âncoras verificadas (releases IPEA/FBSP); complete com os demais anos do Atlas
+    seed = {"2023": 45747, "2024": 42590}
+    atual = {}
+    if pcrime.exists():
+        for r in le_manual("manual_crime.csv"):
+            try:
+                atual[str(int(r["ano"]))] = int(r["homicidios"])
+            except (ValueError, TypeError):
+                continue
+    faltam = {a: v for a, v in seed.items() if a not in atual}
+    if faltam or not pcrime.exists():
+        atual.update(faltam)
+        pcrime.write_text("ano,homicidios\n" + "".join(f"{a},{atual[a]}\n" for a in sorted(atual)), encoding="utf-8")
+        print(f"[manual] {pcrime} com 2023-2024 (Atlas/IPEA) — complete os demais anos.")
     crime = le_manual("manual_crime.csv")
     if crime:
         salva([{"ano": int(r["ano"]), "homicidios": int(r["homicidios"])} for r in crime],
