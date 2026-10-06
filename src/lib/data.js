@@ -21,7 +21,7 @@ export const brl = (v) => {
   const a = Math.abs(v);
   if (a >= 1e12) return `R$ ${(v / 1e12).toFixed(2)} tri`;
   if (a >= 1e9) return `R$ ${(v / 1e9).toFixed(1)} bi`;
-  if (a >= 1e6) return `R$ ${(v / 1e6).toFixed(0)} mi`;
+  if (a >= 1e6) return `R$ ${(v / 1e6).toFixed(1)} mi`;
   return `R$ ${Math.round(v).toLocaleString("pt-BR")}`;
 };
 
