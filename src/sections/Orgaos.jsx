@@ -25,7 +25,7 @@ export default function Orgaos({ todos, anos, poderes, setPoderes }) {
   return (
     <section id="orgaos" className="scroll-mt-24">
       <SectionHead
-        index="05"
+        index="04"
         eyebrow="Execução por órgão superior"
         title="Todos os órgãos: Executivo, Legislativo e Judiciário"
       />

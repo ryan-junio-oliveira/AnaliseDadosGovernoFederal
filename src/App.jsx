@@ -334,7 +334,6 @@ export default function App() {
               )}
 
               <ErrorBoundary><Suspense fallback={<Skeleton />}><Panorama data={data} anos={anosSet} modo={modo} setModo={setModo} /></Suspense></ErrorBoundary>
-              <ErrorBoundary><Suspense fallback={<Skeleton />}><Conjuntura data={data} anos={anosSet} /></Suspense></ErrorBoundary>
               <AdSlot name="hero" />
               <ErrorBoundary><Suspense fallback={<Skeleton />}><ReceitasDespesas R={R} D={D} /></Suspense></ErrorBoundary>
               <AdSlot name="mid" />
@@ -342,6 +341,7 @@ export default function App() {
               <ErrorBoundary><Suspense fallback={<Skeleton />}><Poderes podm={data.poderes} anos={anosSet} /></Suspense></ErrorBoundary>
               <AdSlot name="bottom" />
               <ErrorBoundary><Suspense fallback={<Skeleton />}><Metodologia /></Suspense></ErrorBoundary>
+              <ErrorBoundary><Suspense fallback={<Skeleton />}><Conjuntura data={data} anos={anosSet} /></Suspense></ErrorBoundary>
               <ErrorBoundary><Suspense fallback={<Skeleton />}><Sobre /></Suspense></ErrorBoundary>
               <ErrorBoundary><Suspense fallback={<Skeleton />}><Privacidade /></Suspense></ErrorBoundary>
             </>

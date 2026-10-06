@@ -69,7 +69,7 @@ export default function Conjuntura({ data, anos }) {
   if (!temMensal && !temEmpresas && !temCrime && !temDes && !temIpo && !dv.length) {
     return (
       <section id="conjuntura" className="scroll-mt-24">
-        <SectionHead index="02" eyebrow="Preços, juros, emprego e empresas" title="Conjuntura" />
+        <SectionHead index="07" eyebrow="Preços, juros, emprego e empresas" title="Conjuntura" />
         <div className="panel p-6 text-sm tx-mut">Sem dados de conjuntura para o filtro atual.</div>
       </section>
     );
@@ -92,7 +92,7 @@ export default function Conjuntura({ data, anos }) {
 
   return (
     <section id="conjuntura" className="scroll-mt-24">
-      <SectionHead index="02" eyebrow="Preços, juros, emprego e empresas" title="Conjuntura" />
+      <SectionHead index="07" eyebrow="Preços, juros, emprego e empresas" title="Conjuntura" />
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5">
         {ipca12 && (
           <Kpi icon="fa-tag" label="IPCA em 12 meses" valor={pct(ipca12.valor)} cor={corIpca}

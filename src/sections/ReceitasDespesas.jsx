@@ -31,7 +31,7 @@ export default function ReceitasDespesas({ R, D }) {
   return (
     <>
       <section id="receitas" className="scroll-mt-24">
-        <SectionHead index="03" eyebrow="Origem dos recursos" title="De onde vem o dinheiro" />
+        <SectionHead index="02" eyebrow="Origem dos recursos" title="De onde vem o dinheiro" />
         <div className="flex flex-col gap-4">
           <div className="panel p-5">
             <h3 className="font-display font-semibold mb-1">Composição da arrecadação</h3>
@@ -69,7 +69,7 @@ export default function ReceitasDespesas({ R, D }) {
 
       <section id="despesas" className="scroll-mt-24">
         <SectionHead
-          index="04"
+          index="03"
           eyebrow="Aplicação dos recursos"
           eyebrowColor="#F43F5E"
           title="Com o que se gasta"

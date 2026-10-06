@@ -100,7 +100,7 @@ export default function Metodologia() {
   return (
     <section id="metodologia" className="scroll-mt-24">
       <SectionHead
-        index="07"
+        index="06"
         eyebrow="Transparência"
         title="Metodologia e fontes"
       />
