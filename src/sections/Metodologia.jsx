@@ -14,7 +14,7 @@ const FONTES = [
     badges: ["Receitas", "Despesas", "Resultado primário", "Poderes (agregado)"],
     itens: [
       "Receita líquida, despesa primária e resultado mensal da União, por tributo e por grupo de despesa, além do agregado de custeio e capital do Legislativo, Judiciário, MPU e DPU.",
-      "Série histórica mensal em XLSX (baixada via scripts/coleta.py), valores correntes em R$ milhões, regime de caixa, conceito “acima da linha”.",
+      "Série histórica mensal em XLSX (baixada via scripts/coletas/coleta.py), valores correntes em R$ milhões, regime de caixa, conceito “acima da linha”.",
       "Janela rolante de uma década: do ano atual menos 10 até o ano atual (ex.: 2016–2026 em 2026; 2017–2027 em 2027, automático). Receita líquida = receita total menos transferências a estados e municípios.",
       "Cobre: receita por tributo (IR, COFINS, PIS/Pasep, CSLL, IPI, IOF, Previdência, concessões, dividendos, royalties), grupos de despesa e o agregado Legislativo/Judiciário/MPU/DPU (item 4.3.12).",
       "Atualização mensal, conforme calendário do Tesouro. Licença ODbL. Alimenta: mensal.json, anual.json, receitas.json, despesas.json, poderes.json.",
@@ -29,7 +29,7 @@ const FONTES = [
     badges: ["Todos os órgãos superiores", "Todos os Poderes"],
     itens: [
       "Execução orçamentária por órgão superior (dotação, empenhado, liquidado e pago) de todos os Poderes — base da seção Órgãos.",
-      "Dumps N-Triples anuais loaAAAA.zip (~40 MB/ano), parseados por scripts/coleta_orgaos_todos.py (~9 milhões de triplas/ano). Anos = mesma janela rolante do RTN.",
+      "Dumps N-Triples anuais loaAAAA.zip (~40 MB/ano), parseados por scripts/coletas/coleta_orgaos_todos.py (~9 milhões de triplas/ano). Anos = mesma janela rolante do RTN.",
       "Agregação por órgão superior: dotação inicial, empenhado, liquidado e pago — Executivo, Legislativo (Câmara, Senado, TCU), Judiciário (STF, STJ, JF, JT, JE…), MPU, CNMP e DPU.",
       "Conceito: execução orçamentária total (pago — inclui juros e amortização da dívida, transferências e operações de crédito).",
       "Atualização anual, por exercício da LOA. Alimenta: orgaos_todos.json (seção Órgãos) e emendas.json (RP 6/7/8/9 — bloco Emendas).",
@@ -58,7 +58,7 @@ const FONTES = [
     itens: [
       "Séries mensais de preços, juros e câmbio — base da seção Economia; o IPCA mensal também alimenta o botão Real (IPCA), que reexpressa os valores fiscais.",
       "Séries mensais via API pública (SGS 433, 1 e 432), sem token. IPCA em 12 meses calculado aqui. Ibovespa via Yahoo Finance (fechamento mensal ajustado ^BVSP).",
-      "Atualização diária/mensal, conforme a série. Licença ODbL. Alimenta: conj_mensal.json.",
+      "Atualização diária/mensal, conforme a série. Licença ODbL. Alimenta: conj_mensal.json, conj_dividas.json e conj_fiscal.json.",
     ],
   },
   {

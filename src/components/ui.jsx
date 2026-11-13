@@ -58,7 +58,7 @@ export function Seg({ active, onClick, children }) {
 
 /**
  * Selo de cobertura da base: separa o que é década fiscal completa
- * do que tem cobertura menor (ex.: Serasa 2024–2026, Atlas 2023–2024).
+ * do que tem cobertura menor (ex.: emendas do ano corrente).
  * `parcial` pinta o selo de âmbar; sem ele, tom neutro.
  */
 export function SeloCobertura({ faixa, fonte, parcial }) {

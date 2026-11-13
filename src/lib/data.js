@@ -66,7 +66,6 @@ const CAMPOS_MOEDA = {
   despesas: ["valor"],
   poderes: ["legjud_mpudpu_custeio_capital", "despesa_total"],
   orgaos_todos: ["pago", "empenhado", "liquidado", "dotacao"],
-  conj_ipos: ["volume"],
   conj_fiscal: ["primario", "juros", "nominal"],
   conj_dividas: ["dbgg_rs", "dlsp_rs"],
   emendas: ["pago", "empenhado", "liquidado", "dotacao"],
@@ -339,7 +338,7 @@ export function anualizar(rows, f = IDENT) {
 /**
  * Faixa de cobertura de uma série: {n, ini, fim, rotulo, anos}.
  * Usada para separar visualmente os dados da década fiscal (2016–2026)
- * dos que têm cobertura menor (ex.: Serasa 2024–2026, Atlas 2023–2024).
+ * dos que têm cobertura menor (ex.: emendas do ano corrente).
  * Calcula-se sobre a base CHEIA (sem filtro de anos); o filtro só recorta.
  *
  * @param {object[]} linhas registros com campo de data

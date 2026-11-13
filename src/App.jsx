@@ -14,7 +14,7 @@ const Poderes = lazy(() => import("./sections/Poderes.jsx"));
 const Comparar = lazy(() => import("./sections/Comparar.jsx"));
 const Metodologia = lazy(() => import("./sections/Metodologia.jsx"));
 const Privacidade = lazy(() => import("./sections/Privacidade.jsx"));
-const PlanoPage = lazy(() => import("./sections/plano/PlanoPage.jsx"));
+const Documentacao = lazy(() => import("./sections/Documentacao.jsx"));
 
 const toggleIn = (arr, v, min = 1) =>
   arr.includes(v) ? (arr.length > min ? arr.filter((x) => x !== v) : arr) : [...arr, v];
@@ -97,6 +97,11 @@ function YearFilter({ anos, anosBtns, setAnos }) {
 
 export default function App() {
   const { theme, toggle } = useTheme();
+  // visao: "painel" (dashboard) | "doc" (página lateral de documentação)
+  const [visao, setVisao] = useState("painel");
+  useEffect(() => {
+    if (visao === "doc") window.scrollTo({ top: 0 });
+  }, [visao]);
   const [enteId, setEnteId] = useState(() => {
     try { return localStorage.getItem("pfu-ente") || "uniao"; } catch { return "uniao"; }
   });
@@ -112,16 +117,6 @@ export default function App() {
   const [poderes, setPoderes] = useState(PODERES);
   const [insightIdx, setInsightIdx] = useState(0);
   const [copiado, setCopiado] = useState(false);
-  // Visão: painel fiscal (padrão) ou página dedicada Plano Brasil 2040.
-  const [visao, setVisao] = useState(() => {
-    try { return localStorage.getItem("pfu-visao") || "painel"; } catch { return "painel"; }
-  });
-  useEffect(() => {
-    try { localStorage.setItem("pfu-visao", visao); } catch { /* sem storage */ }
-    document.title = visao === "plano"
-      ? "Brasil 2040 — Um Projeto de País"
-      : "Observatório dos Dados — Receitas, despesas e resultado fiscal";
-  }, [visao]);
   const headRef = useRef(null);
   const [headH, setHeadH] = useState(64);
 
@@ -232,11 +227,16 @@ export default function App() {
             <p className="text-[10px] tx-faint hidden min-[420px]:block">{eUniao ? "União" : ente.sigla} {intervalo?.anos || ""}</p>
           </div>
           <span className="ml-auto flex-none flex items-center gap-1.5">
-            <button type="button" className={`segbtn${visao === "painel" ? " on" : ""}`} onClick={() => setVisao("painel")}>
-              Painel
-            </button>
-            <button type="button" className={`segbtn${visao === "plano" ? " on" : ""}`} onClick={() => setVisao("plano")} title="Página dedicada ao Plano Brasil 2040">
-              Plano 2040
+            <button
+              type="button"
+              className="segbtn"
+              onClick={() => setVisao((v) => (v === "doc" ? "painel" : "doc"))}
+              title="Documentação do projeto — Atividade Prática 1"
+              aria-label="Documentação do projeto"
+              aria-pressed={visao === "doc"}
+            >
+              <i className="fa-solid fa-book-open" aria-hidden="true"></i>
+              <span className="hidden sm:inline">Documentação</span>
             </button>
             {themeBtn}
           </span>
@@ -245,12 +245,8 @@ export default function App() {
 
       <div>
         <main id="conteudo" className="max-w-6xl mx-auto px-4" style={{ paddingTop: headH + 8, paddingBottom: 104 }}>
-          {visao === "plano" ? (
-            <ErrorBoundary><Suspense fallback={<Skeleton />}><PlanoPage /></Suspense></ErrorBoundary>
-          ) : (
-            <>
-          {loading && <Skeleton lines={4} />}
-          {error && !loading && (
+          {visao !== "doc" && loading && <Skeleton lines={4} />}
+          {visao !== "doc" && error && !loading && (
             <div className="panel p-10 mt-6 text-center" role="alert">
               <i className="fa-solid fa-triangle-exclamation mr-2" style={{ color: "var(--brick)" }} aria-hidden="true"></i>
               Falha ao carregar os dados: {error}
@@ -262,7 +258,7 @@ export default function App() {
             </div>
           )}
 
-          {data && resumo && (
+          {visao !== "doc" && data && resumo && (
             <>
               {/* filtros: acima do conteudo, largura total */}
               <section className="panel p-4 mt-4 flex flex-col gap-3" aria-label="Filtros">
@@ -409,7 +405,13 @@ export default function App() {
               <ErrorBoundary><Suspense fallback={<Skeleton />}><Privacidade /></Suspense></ErrorBoundary>
             </>
           )}
-            </>
+
+          {visao === "doc" && (
+            <ErrorBoundary>
+              <Suspense fallback={<Skeleton lines={6} />}>
+                <Documentacao onVoltar={() => setVisao("painel")} />
+              </Suspense>
+            </ErrorBoundary>
           )}
         </main>
 
@@ -418,11 +420,26 @@ export default function App() {
             <BrandMark size={24} />
             <span>Observatório dos Dados · Tesouro Transparente (ODbL) + SIOP</span>
             <span className="ml-auto flex gap-4">
-              <button type="button" className="hover:opacity-70 transition" onClick={() => { setVisao("plano"); document.getElementById("conteudo")?.scrollIntoView(); }}>Plano 2040</button>
-              <a href="#metodologia" className="hover:opacity-70 transition" onClick={() => setVisao("painel")}>Metodologia</a>
-              <a href="#sobre" className="hover:opacity-70 transition">Sobre</a>
-              <a href="#privacidade" className="hover:opacity-70 transition">Privacidade</a>
-              <a href="#conteudo" className="hover:opacity-70 transition">Topo</a>
+              <a href="#conteudo" className="hover:opacity-70 transition" onClick={(e) => { e.preventDefault(); setVisao("doc"); }}>
+                Documentação
+              </a>
+              {["metodologia", "sobre", "privacidade"].map((id) => (
+                <a
+                  key={id}
+                  href={`#${id}`}
+                  className="hover:opacity-70 transition"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (visao === "doc") setVisao("painel");
+                    setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" }), 120);
+                  }}
+                >
+                  {id === "sobre" ? "Sobre" : id === "privacidade" ? "Privacidade" : "Metodologia"}
+                </a>
+              ))}
+              <a href="#conteudo" className="hover:opacity-70 transition" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+                Topo
+              </a>
             </span>
           </div>
         </footer>
