@@ -9,7 +9,7 @@ from pathlib import Path
 from datetime import datetime
 import urllib.request
 
-BASE = Path(__file__).resolve().parent.parent
+BASE = Path(__file__).resolve().parents[2]
 DATA = BASE / "data"
 DATA.mkdir(exist_ok=True)
 

@@ -21,23 +21,24 @@ def carrega(nome):
         erros.append(f"{nome}.json inválido: {e}")
         return []
 
-mensal = carrega("mensal")
-carrega("anual"); carrega("receitas"); carrega("despesas"); carrega("poderes"); carrega("orgaos_todos")
+mensal_rows = {}
+for nome in REQUERIDOS:
+    antes = len(erros)
+    rows = carrega(nome)
+    if not rows and len(erros) == antes:
+        erros.append(f"{nome}.json sem registros (lista vazia)")
+    mensal_rows[nome] = rows
+mensal = mensal_rows["mensal"]
 
 # conjuntura: opcional (so existe apos coleta_conjuntura.py); se existir, valida schema
 CONJ = {
     "conj_mensal": ("mes",),
     "conj_dividas": ("mes",),
-    "conj_desemprego": ("mes",),
-    "conj_empresas": ("mes",),
-    "conj_empresas_anual": ("ano",),
-    "conj_ipos": ("ano",),
-    "conj_crime": ("ano",),
-    "conj_crime_uf": ("ano",),
     "conj_fiscal": ("mes",),
     "emendas": ("ano",),
 }
 n_conj = 0
+emendas_chaves = set()
 for nome, chaves in CONJ.items():
     p = DATA / f"{nome}.json"
     if not p.exists():
@@ -49,17 +50,18 @@ for nome, chaves in CONJ.items():
             if k not in r:
                 erros.append(f"{nome} sem campo {k}: {r}")
                 break
-# perfil das empresas: objeto {ref, nj_porte, genero_uf}, nao lista
-pp = DATA / "conj_perfil.json"
-if pp.exists():
-    try:
-        perf = json.loads(pp.read_text(encoding="utf-8"))
-        if not perf.get("ref") or not perf.get("nj_porte"):
-            erros.append("conj_perfil.json sem ref/nj_porte")
-        else:
-            n_conj += 1
-    except Exception as e:
-        erros.append(f"conj_perfil.json inválido: {e}")
+    if nome == "emendas":
+        # chave (ano, rp) unica: regressao conhecida era rp "0.0" duplicando a serie
+        for r in rows:
+            rp = str(r.get("rp", ""))
+            k = (r.get("ano"), rp)
+            if k in emendas_chaves:
+                erros.append(f"emendas com chave duplicada (ano, rp) = {k}")
+                break
+            emendas_chaves.add(k)
+            if "." in rp:
+                erros.append(f"emendas com rp nao normalizado: {rp!r}")
+                break
 
 for r in mensal:
     for k in ("mes", "receita", "despesa", "resultado_primario"):
@@ -115,4 +117,5 @@ if erros:
     for e in erros[:20]:
         print(" -", e)
     raise SystemExit(1)
-print(f"OK: {len(mensal)} meses validados, 6 arquivos íntegros + {n_conj} de conjuntura + {n_uf} UFs.")
+print(f"OK: {len(mensal)} meses validados, {len(REQUERIDOS)} arquivos obrigatorios integros"
+      f" + {n_conj} de conjuntura + {n_uf} UFs.")

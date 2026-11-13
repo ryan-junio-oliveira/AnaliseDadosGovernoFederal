@@ -4,10 +4,10 @@ import pandas as pd
 from pathlib import Path
 
 import sys
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from janela import ANO_FIM, ANO_INI, MES_FIM, MES_INI
 
-BASE = Path(__file__).resolve().parent.parent
+BASE = Path(__file__).resolve().parents[2]
 XLSX = BASE / "data" / "rtn_serie_historica.xlsx"
 DATA = BASE / "data"
 
@@ -41,10 +41,13 @@ print(f"mensal: {len(mensal)} meses, {mensal['mes'].min()} -> {mensal['mes'].max
 print(mensal.groupby(mensal["mes"].dt.year)[["receita","despesa"]].sum()/1e12)
 
 # receitas por tipo (agrupado, nomes limpos)
-mapa_rec = {6:"RFB - Demais/IR*", 9:"Imposto sobre a Renda", 11:"COFINS", 12:"PIS/Pasep",
-            13:"CSLL", 7:"Importação", 8:"IPI", 10:"IOF", 18:"Arrec. Líquida RGPS (INSS)",
-            20:"Concessões e Permissões", 21:"Dividendos e Participações",
-            24:"Exploração Recursos Naturais", 28:"Transferências a Estados/Municípios (dedução)"}
+# ATENCAO: indices batem com a planilha RTN 1.1 (linha 0 = titulo).
+# 16 = "1.1.10 Outras Receitas Administradas" (residual REAL; NAO usar a
+# linha 6 "1.1 Receita Administrada pela RFB" — e subtotal e duplicaria
+# IR/COFINS/etc. no grafico). 23 = "1.4.4 Exploracao de Recursos Naturais".
+mapa_rec = {16:"Outras Receitas Administradas", 9:"Imposto sobre a Renda", 11:"COFINS", 12:"PIS/Pasep",
+            13:"CSLL", 7:"Importacao", 8:"IPI", 10:"IOF", 18:"Arrec. Líquida RGPS (INSS)", 20:"Concessões e Permissões", 21:"Dividendos e Participações",
+            23:"Exploração Recursos Naturais", 28:"Transferências a Estados/Municípios (dedução)"}
 rec_rows = []
 for idx, nome in mapa_rec.items():
     s = get_row(idx)

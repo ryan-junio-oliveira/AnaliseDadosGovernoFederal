@@ -25,7 +25,7 @@ Este plano permite adicionar as 27 UFs **sem reescrever o frontend**.
 
 ## 3. ETL
 
-- `scripts/coleta_siconfi.py --uf SP --anos 2022 ...` — esqueleto pronto; busca RREO e gera placeholders válidos.
+- `scripts/coletas/coleta_siconfi.py --uf SP --anos 2022 ...` — esqueleto pronto; busca RREO e gera placeholders válidos.
 - Passo pendente: mapear contas SICONFI → categorias do painel:
   - `receitas`: Impostos, Transferências correntes (FPE/Fundeb), Contribuições, Patrimonial, Capital.
   - `despesas`: Pessoal, Juros/Dívida, Outras correntes, Investimentos, Inversões.

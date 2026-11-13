@@ -67,7 +67,7 @@ goto FIM
 echo.
 if not exist "%ROOT%data\rtn_mensal_2022_2026.csv" goto SEM_BASE_UNIAO
 echo == Exportando para o frontend - public/data ==
-python "%SCRIPTS%\export_json.py" || goto FALHA_EXPORT
+python "%SCRIPTS%\processamento\export_json.py" || goto FALHA_EXPORT
 python "%SCRIPTS%\validar.py" || goto FALHA_VALID
 echo [OK] Frontend atualizado e validado.
 pause
@@ -111,12 +111,12 @@ set ANOS=
 set /p ANOS="Anos separados por espaco [Enter = decada automatica]: "
 if "%ANOS%"=="" goto SICONFI_UF_AUTO
 echo == Coletando SICONFI da UF %UF% - anos %ANOS% ==
-python "%SCRIPTS%\coleta_siconfi.py" --uf %UF% --anos %ANOS% || goto FALHA_COLETA
+python "%SCRIPTS%\coletas\coleta_siconfi.py" --uf %UF% --anos %ANOS% || goto FALHA_COLETA
 goto EXPORTA_E_VALIDA
 
 :SICONFI_UF_AUTO
 echo == Coletando SICONFI da UF %UF% - decada automatica ==
-python "%SCRIPTS%\coleta_siconfi.py" --uf %UF% || goto FALHA_COLETA
+python "%SCRIPTS%\coletas\coleta_siconfi.py" --uf %UF% || goto FALHA_COLETA
 goto EXPORTA_E_VALIDA
 
 :SICONFI_TODAS
@@ -128,11 +128,11 @@ if /i not "%CONFIRMA%"=="S" goto MENU
 set ANOS2=
 set /p ANOS2="Anos separados por espaco [Enter = decada automatica]: "
 if "%ANOS2%"=="" goto SICONFI_TODAS_AUTO
-python "%SCRIPTS%\coleta_siconfi.py" --todos --anos %ANOS2% || goto FALHA_COLETA
+python "%SCRIPTS%\coletas\coleta_siconfi.py" --todos --anos %ANOS2% || goto FALHA_COLETA
 goto EXPORTA_E_VALIDA
 
 :SICONFI_TODAS_AUTO
-python "%SCRIPTS%\coleta_siconfi.py" --todos || goto FALHA_COLETA
+python "%SCRIPTS%\coletas\coleta_siconfi.py" --todos || goto FALHA_COLETA
 goto EXPORTA_E_VALIDA
 
 :DEV
@@ -210,12 +210,12 @@ pause
 goto AVANCADO
 
 :ADV_RTN
-python "%SCRIPTS%\coleta.py"
+python "%SCRIPTS%\coletas\coleta.py"
 pause
 goto AVANCADO
 
 :ADV_PROCESSA
-python "%SCRIPTS%\processa_rtn.py"
+python "%SCRIPTS%\processamento\processa_rtn.py"
 pause
 goto AVANCADO
 
@@ -223,12 +223,12 @@ goto AVANCADO
 set ANOS3=
 set /p ANOS3="Anos separados por espaco [Enter = decada automatica]: "
 if "%ANOS3%"=="" goto ADV_ORGAOS_AUTO
-python "%SCRIPTS%\coleta_orgaos_todos.py" %ANOS3%
+python "%SCRIPTS%\coletas\coleta_orgaos_todos.py" %ANOS3%
 pause
 goto AVANCADO
 
 :ADV_ORGAOS_AUTO
-python "%SCRIPTS%\coleta_orgaos_todos.py"
+python "%SCRIPTS%\coletas\coleta_orgaos_todos.py"
 pause
 goto AVANCADO
 

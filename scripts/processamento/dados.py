@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-BASE = Path(__file__).resolve().parent.parent
+BASE = Path(__file__).resolve().parents[2]
 DATA = BASE / "data"
 
 
@@ -17,7 +17,7 @@ def fold(s):
 
 # chave = versao sem acento do rotulo do CSV ; valor = rotulo curto (ASCII, seguro)
 REC_SHORT = {
-    "rfb - demais/ir*": "Outras RFB",
+    "outras receitas administradas": "Outras RFB",
     "imposto sobre a renda": "Imposto de Renda",
     "cofins": "COFINS",
     "pis/pasep": "PIS/Pasep",

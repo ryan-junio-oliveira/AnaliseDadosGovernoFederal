@@ -12,8 +12,11 @@
     "test": "vitest run",
     "preview": "vite preview --port 8000",
     "atualizar": "python scripts/atualizar.py",
-    "exportar": "python scripts/export_json.py",
-    "validar-dados": "python scripts/validar.py"
+    "exportar": "python scripts/processamento/export_json.py",
+    "validar-dados": "python scripts/validar.py",
+    "banco": "python scripts/banco/carregar.py",
+    "exploratoria": "python scripts/analise/exploratoria.py",
+    "estatistica": "python scripts/analise/estatistica.py"
   },
   "dependencies": {
     "chart.js": "^4.4.7",

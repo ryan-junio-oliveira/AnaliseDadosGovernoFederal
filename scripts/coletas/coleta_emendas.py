@@ -5,7 +5,7 @@ Liga ItemDespesa --temResultadoPrimario--> ResultadoPrimario:
   RP 6 = emendas individuais, RP 7 = bancada estadual,
   RP 8 = comissao, RP 9 = relator-geral (ate 2021).
 
-Uso:  python scripts/coleta_emendas.py [2022 2023]   (sem args = decada)
+Uso:  python scripts/coletas/coleta_emendas.py [2022 2023]   (sem args = decada)
       Processa os anos dados e MESCLA em data/emendas.csv +
       public/data/emendas.json (anos nao processados sao preservados).
 
@@ -17,11 +17,11 @@ import sys
 import zipfile
 from pathlib import Path
 
-BASE = Path(__file__).resolve().parent.parent
+BASE = Path(__file__).resolve().parents[2]
 DATA = BASE / "data"
 PUB = BASE / "public" / "data"
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from janela import ANOS
 
 LOA = "http://vocab.e.gov.br/2013/09/loa#"
@@ -37,7 +37,6 @@ RP_NOME = {
     "8": "Emendas de comissão",
     "9": "Emendas de relator",
 }
-
 
 def parse_ano(ano):
     zpath = DATA / f"loa{ano}.zip"
@@ -97,7 +96,9 @@ if __name__ == "__main__":
     atual = {}
     for arq in (DATA / "emendas.csv",):
         if arq.exists():
-            for _, r in pd.read_csv(arq).iterrows():
+            # converters: rp tem que ser lido como texto; sem isso o iterrows
+            # float-coage para 0.0 e a chave difere da "0" vinda do parse (duplica)
+            for _, r in pd.read_csv(arq, converters={"rp": str}).iterrows():
                 atual[(int(r["ano"]), str(r["rp"]))] = {
                     "ano": int(r["ano"]), "rp": str(r["rp"]),
                     "pago": float(r["pago"]), "empenhado": float(r["empenhado"]),

@@ -15,8 +15,8 @@ Fontes:
 - DCA Anexo I-C: detalhamento por órgão (quando disponível)
 
 Uso:
-  python scripts/coleta_siconfi.py --uf SP --anos 2022 2023 2024 2025 2026
-  python scripts/coleta_siconfi.py --todos
+  python scripts/coletas/coleta_siconfi.py --uf SP --anos 2022 2023 2024 2025 2026
+  python scripts/coletas/coleta_siconfi.py --todos
   (sem --anos, usa a decada automatica de scripts/janela.py)
   (atalho Windows: menu.bat opcoes 2 e 3)
 
@@ -34,8 +34,9 @@ import urllib.request
 from pathlib import Path
 from urllib.error import HTTPError
 
-BASE = Path(__file__).resolve().parent.parent
+BASE = Path(__file__).resolve().parents[2]
 OUT = BASE / "public" / "data" / "uf"
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # acha scripts/janela.py
 
 # Código IBGE por UF (usado no filtro da API SICONFI: cod_ibge LIKE '35%' p/ SP)
 IBGE = {
@@ -229,8 +230,22 @@ def montar_uf(slug: str, itens: list[dict], anos: list[int]) -> Path:
 
 
 def exporta_placeholder(slug: str, anos: list[int]) -> Path:
-    """Cria estrutura vazia válida para a UF aparecer como 'em coleta' sem quebrar o front."""
+    """Cria estrutura vazia válida para a UF aparecer como 'em coleta' sem quebrar o front.
+
+    Nunca sobrescreve dados reais ja publicados: falha transitoria (429/5xx/timeout)
+    mantem a ultima coleta valida da UF.
+    """
     dest = OUT / slug
+    mp = dest / "mensal.json"
+    if mp.exists():
+        try:
+            previo = json.loads(mp.read_text(encoding="utf-8"))
+        except Exception:
+            previo = None
+        if isinstance(previo, list) and previo:
+            print(f"[{slug}] coleta falhou; mantidos os {len(previo)} meses ja publicados "
+                  "(placeholder nao aplicado).", flush=True)
+            return dest
     dest.mkdir(parents=True, exist_ok=True)
     for nome in ("mensal", "anual", "receitas", "despesas", "poderes", "orgaos_todos"):
         (dest / f"{nome}.json").write_text("[]", encoding="utf-8")
@@ -254,7 +269,7 @@ if __name__ == "__main__":
     from janela import janela as janela_padrao
     anos = a.anos or janela_padrao()
     alvos = sorted(IBGE) if a.todos else [(a.uf or "sp").lower()]
-    total_linhas = total_pulados = 0
+    total_linhas = total_pulados = falhas = 0
     for slug in alvos:
         print(f"== {slug.upper()} ==", flush=True)
         try:
@@ -266,13 +281,20 @@ if __name__ == "__main__":
             if res["linhas_rreo"]:
                 print(f"   -> {montar_uf(slug, res['itens'], anos)}", flush=True)
             else:
+                falhas += 1
                 print(f"   -> {exporta_placeholder(slug, anos)}", flush=True)
         except Exception as e:
+            falhas += 1
             print(f"   erro na API, gerando placeholder: {e}")
             print(f"   -> {exporta_placeholder(slug, anos)}", flush=True)
     print(f"Total: {total_linhas} linhas RREO, {total_pulados} periodos pulados.")
     if total_linhas == 0:
         print("NENHUMA linha coletada: a API do Tesouro bloqueou o ritmo (429). "
               "Aguarde ~15 min e rode de novo, ou aumente --delay (ex. --delay 3).")
+    if falhas:
+        # exit != 0 para o atualizar.py registrar a UF no RESUMO de falhas
+        print(f"FALHA: {falhas} UF(s) sem linhas nesta rodada "
+              "(mantido o que ja existia).")
+        raise SystemExit(1)
     print("OK. UFs com linhas RREO ganham mensal/anual/receitas/despesas (bimestral);")
     print("sem linhas, placeholder 'em-coleta'. Habilite a UF em src/lib/entes.js.")

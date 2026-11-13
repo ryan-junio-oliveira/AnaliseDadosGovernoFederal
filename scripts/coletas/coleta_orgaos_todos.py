@@ -5,7 +5,7 @@ Agrega por orgao: dotacao inicial (LOA), empenhado, liquidado e pago.
 Conceito: execucao ORCAMENTARIA total (inclui juros/amortizacao da divida) —
 diferente do RTN (primario). Ver secao Orgaos no frontend.
 
-Uso:  python src/coleta_orgaos_todos.py [2022 2023 2024 2025 2026]
+Uso:  python scripts/coletas/coleta_orgaos_todos.py [2022 2023 2024 2025 2026]
 Saida: data/orgaos_todos.csv
 """
 import re
@@ -15,8 +15,9 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-BASE = Path(__file__).resolve().parent.parent
+BASE = Path(__file__).resolve().parents[2]
 DATA = BASE / "data"
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # acha scripts/janela.py
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -40,8 +41,20 @@ def poder_de(cod, nome):
     return "Executivo"
 
 
+def zip_valido(zpath) -> bool:
+    """Zip legivel com pelo menos um .nt. Falso para download truncado/HTML (404)."""
+    try:
+        with zipfile.ZipFile(zpath) as z:
+            return any(n.endswith(".nt") for n in z.namelist())
+    except (zipfile.BadZipFile, OSError):
+        return False
+
+
 def parse_ano(ano):
     zpath = DATA / f"loa{ano}.zip"
+    if zpath.exists() and not zip_valido(zpath):
+        print(f"[{ano}] zip corrompido no cache; apagando e rebaixando", flush=True)
+        zpath.unlink(missing_ok=True)
     if not zpath.exists():
         url = f"http://www1.siop.planejamento.gov.br/downloads/rdf/loa{ano}.zip"
         print(f"[{ano}] baixando {url} ...", flush=True)
@@ -49,8 +62,11 @@ def parse_ano(ano):
         raw = urllib.request.urlopen(req, timeout=600).read()
         zpath.write_bytes(raw)
         print(f"[{ano}] {len(raw)/1e6:.1f} MB", flush=True)
+        if not zip_valido(zpath):
+            zpath.unlink(missing_ok=True)
+            raise RuntimeError("download nao veio como zip valido (404/HTML?); cache limpo")
     z = zipfile.ZipFile(zpath)
-    nt = [n for n in z.namelist() if n.endswith(".nt")][0]
+    nt = next(n for n in z.namelist() if n.endswith(".nt"))
 
     org_label, org_cod = {}, {}
     uo_org = {}
